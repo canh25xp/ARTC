@@ -1,0 +1,4418 @@
+From f1968cb6e4bd869646daa8d9a3d5887955b35d65 Mon Sep 17 00:00:00 2001
+From: Wyatt Sun <wyatt.sun@mediatek.com>
+Date: Thu, 20 Jan 2022 23:07:30 +0800
+Subject: [PATCH] [ALPS09803157] Support LLS Android V leap from S
+
+[Description]
+Base: 5242430(s0.mp1.tc10sp) <- 5436346 (neptune-main)
+01. 5542912 [WCNCR00192833] misc: Add modification to trunk-main
+02. 5864885 [ALPS07098364] Use array in StaRec to store RxV
+03. 5862463 [ALPS07098364] Extend wlanGetRxRate to support retrieving
+            RateInfo
+            aisGetDefaultLinkBssIndex -> AIS_DEFAULT_INDEX
+04. 5865071 [ALPS07098364] Replace API wlanGetRxRate with
+            wlanGetRxRateByBssid
+05. 5722350 [ALPS07030114] Support unified command/event for LLS
+06. 5909344 [ALPS07030114] Support CONNAC3 RX rate
+07. 6066039 [ALPS07030114] Fix MCS index for DCM/RU106
+08. 6083751 [ALPS07030114] Enclose option for LLS structures in none OS
+            header file
+09. 6059134 [ALPS07030114] Restructure LLS full structure
+10. 6060027 [ALPS07030114] Support radio stats of tx power levels
+11. 6060038 [ALPS07030114] Support LLS for specifying interface
+12. 6529290 [ALPS07563287] Add sanity check on RX NULL pvPacket
+13. 7085384 [ALPS06004836] LLS for Android U with multi-link support
+            eHwBandIdx-> eBand
+14. 7501056 [ALPS08103353] nic: fix updateLinkStatsMpduAc KE
+15. 7621501 [ALPS08156586] Switch LLS log by wifi.cfg option
+16. 7672930 [ALPS08165558] Make legacy Wi-Fi compabible with Android U
+
+[Test]
+Build pass
+
+CR-Id: ALPS09803157
+Feature: Wi-Fi Link Layer Statistics
+Signed-off-by: Wyatt Sun <wyatt.sun@mediatek.com>
+Change-Id: I1ffbd869ee8b279977ff79c686e9be00170f95d4
+---
+
+diff --git a/chips/common/cmm_asic_connac.c b/chips/common/cmm_asic_connac.c
+index 9f1d245..b5a4630 100644
+--- a/chips/common/cmm_asic_connac.c
++++ b/chips/common/cmm_asic_connac.c
+@@ -1643,6 +1643,7 @@
+ 	IN OUT struct SW_RFB *prRetSwRfb)
+ {
+ 	struct HW_MAC_RX_STS_GROUP_3 *prGroup3;
++	uint32_t *prRxV = NULL; /* pointer to destination buffer to store RxV */
+ 
+ 	if (prRetSwRfb->ucStaRecIdx >= CFG_STA_REC_NUM) {
+ 		DBGLOG(RX, LOUD,
+@@ -1654,30 +1655,12 @@
+ 		(struct HW_MAC_RX_STS_GROUP_3 *)prRetSwRfb->prRxStatusGroup3;
+ 
+ 	if (prRetSwRfb->ucGroupVLD & BIT(RX_GROUP_VLD_3)) {
+-		prAdapter->arStaRec[
+-			prRetSwRfb->ucStaRecIdx].u4RxVector0 =
+-			HAL_RX_VECTOR_GET_RX_VECTOR(
+-			prGroup3, 0);
+-
+-		prAdapter->arStaRec[
+-			prRetSwRfb->ucStaRecIdx].u4RxVector1 =
+-			HAL_RX_VECTOR_GET_RX_VECTOR(
+-			prGroup3, 1);
+-
+-		prAdapter->arStaRec[
+-			prRetSwRfb->ucStaRecIdx].u4RxVector2 =
+-			HAL_RX_VECTOR_GET_RX_VECTOR(
+-			prGroup3, 2);
+-
+-		prAdapter->arStaRec[
+-			prRetSwRfb->ucStaRecIdx].u4RxVector3 =
+-			HAL_RX_VECTOR_GET_RX_VECTOR(
+-			prGroup3, 3);
+-
+-		prAdapter->arStaRec[
+-			prRetSwRfb->ucStaRecIdx].u4RxVector4 =
+-			HAL_RX_VECTOR_GET_RX_VECTOR(
+-			prGroup3, 4);
++		prRxV = prAdapter->arStaRec[prRetSwRfb->ucStaRecIdx].au4RxV;
++		prRxV[0] = HAL_RX_VECTOR_GET_RX_VECTOR(prGroup3, 0);
++		prRxV[1] = HAL_RX_VECTOR_GET_RX_VECTOR(prGroup3, 1);
++		prRxV[2] = HAL_RX_VECTOR_GET_RX_VECTOR(prGroup3, 2);
++		prRxV[3] = HAL_RX_VECTOR_GET_RX_VECTOR(prGroup3, 3);
++		prRxV[4] = HAL_RX_VECTOR_GET_RX_VECTOR(prGroup3, 4);
+ 	}
+ }
+ #endif /* CFG_SUPPORT_MSP */
+@@ -1769,15 +1752,15 @@
+ 	uint32_t u4PhyRate;
+ 	uint8_t ucRCPI0 = 0, ucRCPI1 = 0;
+ 	uint16_t u2Rate = 0; /* Unit 500 Kbps */
+-	struct RateInfo rRateInfo = {0};
++	struct RxRateInfo rRxRateInfo = {0};
+ 	int status;
+ 
+ 	ASSERT(prAdapter);
+ 	ASSERT(prSwRfb);
+ 
+ 	prGlueInfo = prAdapter->prGlueInfo;
+-	status = wlanGetRxRate(prGlueInfo, ucBssIndex, &u4PhyRate, NULL,
+-			&rRateInfo);
++	status = wlanGetRxRateByBssid(prGlueInfo, ucBssIndex, &u4PhyRate, NULL,
++			&rRxRateInfo);
+ 	/* ucRate(500kbs) = u4PhyRate(100kbps) */
+ 	if (status < 0 || u4PhyRate == 0)
+ 		return;
+@@ -1792,7 +1775,7 @@
+ 	if (u2Rate > prGlueInfo->PerfIndCache.u2CurRxRate[ucBssIndex]) {
+ 		prGlueInfo->PerfIndCache.u2CurRxRate[ucBssIndex] = u2Rate;
+ 		prGlueInfo->PerfIndCache.ucCurRxNss[ucBssIndex] =
+-								rRateInfo.u4Nss;
++							rRxRateInfo.u4Nss;
+ 		prGlueInfo->PerfIndCache.ucCurRxRCPI0[ucBssIndex] = ucRCPI0;
+ 		prGlueInfo->PerfIndCache.ucCurRxRCPI1[ucBssIndex] = ucRCPI1;
+ 	}
+diff --git a/chips/common/cmm_asic_connac2x.c b/chips/common/cmm_asic_connac2x.c
+index bdfe0a6..abef42b 100644
+--- a/chips/common/cmm_asic_connac2x.c
++++ b/chips/common/cmm_asic_connac2x.c
+@@ -1658,26 +1658,13 @@
+ }
+ 
+ 
+-void nicRxProcessRxvLinkStats(IN struct ADAPTER *prAdapter,
+-	IN struct SW_RFB *prRetSwRfb, uint32_t u4RxVector0)
+-{
+-#if CFG_SUPPORT_LLS
+-	struct CHIP_DBG_OPS *prChipDbg;
+-
+-	prChipDbg = prAdapter->chip_info->prDebugOps;
+-	if (prChipDbg && prChipDbg->get_rx_link_stats) {
+-		prChipDbg->get_rx_link_stats(
+-				prAdapter, prRetSwRfb, u4RxVector0);
+-	}
+-#endif
+-}
+-
+ 
+ #if (CFG_SUPPORT_MSP == 1)
+ void asicConnac2xRxProcessRxvforMSP(IN struct ADAPTER *prAdapter,
+ 	  IN OUT struct SW_RFB *prRetSwRfb)
+ {
+ 	struct HW_MAC_RX_STS_GROUP_3_V2 *prGroup3;
++	uint32_t *prRxV = NULL; /* pointer to destination buffer to store RxV */
+ 
+ 	if (prRetSwRfb->ucStaRecIdx >= CFG_STA_REC_NUM) {
+ 		DBGLOG(RX, LOUD,
+@@ -1686,58 +1673,21 @@
+ 		return;
+ 	}
+ 
+-	if (CONNAC2X_RXV_FROM_RX_RPT(prAdapter))
+-		return;
+-
+ 	prGroup3 =
+ 		(struct HW_MAC_RX_STS_GROUP_3_V2 *)prRetSwRfb->prRxStatusGroup3;
+ 
++	prRxV = prAdapter->arStaRec[prRetSwRfb->ucStaRecIdx].au4RxV;
++	kalMemZero(prRxV, sizeof(uint32_t) * RXV_NUM);
++
+ 	if (prRetSwRfb->ucGroupVLD & BIT(RX_GROUP_VLD_3)) {
+-		/* P-RXV1[0:31] */
+-		prAdapter->arStaRec[
+-			prRetSwRfb->ucStaRecIdx].u4RxVector0 =
+-			CONNAC2X_HAL_RX_VECTOR_GET_RX_VECTOR(prGroup3, 0);
+-		prAdapter->arStaRec[
+-			prRetSwRfb->ucStaRecIdx].u4RxVector4 =
+-			CONNAC2X_HAL_RX_VECTOR_GET_RX_VECTOR(prGroup3, 1);
+-	} else {
+-		prAdapter->arStaRec[
+-			prRetSwRfb->ucStaRecIdx].u4RxVector0 = 0;
+-		prAdapter->arStaRec[
+-			prRetSwRfb->ucStaRecIdx].u4RxVector4 = 0;
+-	}
++		/* P-RXV0[0:31] in RXD Group3 */
++		prRxV[0] = CONNAC2X_HAL_RX_VECTOR_GET_RX_VECTOR(prGroup3, 0);
+ 
+-	if (prRetSwRfb->ucGroupVLD & BIT(RX_GROUP_VLD_5)) {
+-		/* C-B-0[0:31] */
+-		prAdapter->arStaRec[
+-			prRetSwRfb->ucStaRecIdx].u4RxVector1 =
+-			CONNAC2X_HAL_RX_VECTOR_GET_RX_VECTOR(
+-			prRetSwRfb->prRxStatusGroup5, 0);
+-		/* C-B-1[0:31] */
+-		prAdapter->arStaRec[
+-			prRetSwRfb->ucStaRecIdx].u4RxVector2 =
+-			CONNAC2X_HAL_RX_VECTOR_GET_RX_VECTOR(
+-			prRetSwRfb->prRxStatusGroup5, 2);
+-		/* C-B-2[0:31] */
+-		prAdapter->arStaRec[
+-			prRetSwRfb->ucStaRecIdx].u4RxVector3 =
+-			CONNAC2X_HAL_RX_VECTOR_GET_RX_VECTOR(
+-			prRetSwRfb->prRxStatusGroup5, 4);
+-		/* C-B-3[0:31] */
+-		prAdapter->arStaRec[
+-			prRetSwRfb->ucStaRecIdx].u4RxVector4 =
+-			CONNAC2X_HAL_RX_VECTOR_GET_RX_VECTOR(
+-			prRetSwRfb->prRxStatusGroup5, 6);
+-	} else {
+-		prAdapter->arStaRec[
+-			prRetSwRfb->ucStaRecIdx].u4RxVector1 = 0;
+-		prAdapter->arStaRec[
+-			prRetSwRfb->ucStaRecIdx].u4RxVector2 = 0;
+-		prAdapter->arStaRec[
+-			prRetSwRfb->ucStaRecIdx].u4RxVector3 = 0;
++		/* P-RXV0[32:63] in RXD Group3 */
++		prRxV[1] = CONNAC2X_HAL_RX_VECTOR_GET_RX_VECTOR(prGroup3, 1);
+ 	}
+-	nicRxProcessRxvLinkStats(prAdapter, prRetSwRfb,
+-		prAdapter->arStaRec[prRetSwRfb->ucStaRecIdx].u4RxVector0);
++
++	nicRxProcessRxvLinkStats(prAdapter, prRetSwRfb, prRxV);
+ }
+ #endif /* CFG_SUPPORT_MSP == 1 */
+ 
+@@ -1747,8 +1697,8 @@
+ {
+ 	uint8_t ucRcpi0, ucRcpi1, ucRcpi2, ucRcpi3;
+ 	uint8_t ucRcpiValue = 0;
+-	/* falcon IP donot have this field 'ucRxNum' */
+-	/* uint8_t ucRxNum; */
++	uint8_t ucRxNum;
++	struct HW_MAC_RX_STS_GROUP_3_V2 *prGroup3 = NULL;
+ 
+ 	ASSERT(prSwRfb);
+ 
+@@ -1759,60 +1709,61 @@
+ 		return 0;
+ 	}
+ 
++	if ((prSwRfb->ucGroupVLD & BIT(RX_GROUP_VLD_3)) == 0) {
++		DBGLOG(RX, WARN, "%s, RXD group 3 is not valid\n", __func__);
++		return 0;
++	}
++
++	prGroup3 = (struct HW_MAC_RX_STS_GROUP_3_V2 *)
++				prSwRfb->prRxStatusGroup3;
++
+-	ucRcpi0 = HAL_RX_STATUS_GET_RCPI0(
+-			  (struct HW_MAC_RX_STS_GROUP_3_V2 *)
+-			  prSwRfb->prRxStatusGroup3);
+-	ucRcpi1 = HAL_RX_STATUS_GET_RCPI1(
+-			  (struct HW_MAC_RX_STS_GROUP_3_V2 *)
+-			  prSwRfb->prRxStatusGroup3);
+-	ucRcpi2 = HAL_RX_STATUS_GET_RCPI2(
+-			  (struct HW_MAC_RX_STS_GROUP_3_V2 *)
+-			  prSwRfb->prRxStatusGroup3);
+-	ucRcpi3 = HAL_RX_STATUS_GET_RCPI3(
+-			  (struct HW_MAC_RX_STS_GROUP_3_V2 *)
+-			  prSwRfb->prRxStatusGroup3);
++	ucRcpi0 = CONNAC2X_HAL_RX_VECTOR_GET_RCPI0_V2(prGroup3);
++	ucRcpi1 = CONNAC2X_HAL_RX_VECTOR_GET_RCPI1_V2(prGroup3);
++	ucRcpi2 = CONNAC2X_HAL_RX_VECTOR_GET_RCPI2_V2(prGroup3);
++	ucRcpi3 = CONNAC2X_HAL_RX_VECTOR_GET_RCPI3_V2(prGroup3);
++	ucRxNum = CONNAC2X_HAL_RX_VECTOR_GET_NUM_RX_V2(prGroup3);
+ 
+-	/*If Rcpi is not available, set it to zero*/
+-	if (ucRcpi0 == RCPI_MEASUREMENT_NOT_AVAILABLE)
+-		ucRcpi0 = RCPI_LOW_BOUND;
+-	if (ucRcpi1 == RCPI_MEASUREMENT_NOT_AVAILABLE)
+-		ucRcpi1 = RCPI_LOW_BOUND;
+ 	DBGLOG(RX, TRACE, "RCPI WF0:%d WF1:%d WF2:%d WF3:%d\n",
+ 	       ucRcpi0, ucRcpi1, ucRcpi2, ucRcpi3);
+ 
+-	switch (ucRcpiMode) {
+-	case RCPI_MODE_WF0:
+-		ucRcpiValue = ucRcpi0;
+-		break;
++	if (ucRxNum == 0)
++		ucRcpiValue = (ucRcpi0 >= RCPI_MEASUREMENT_NOT_AVAILABLE) ?
++			(ucRcpi1):(ucRcpi0);
++	else {
++		switch (ucRcpiMode) {
++		case RCPI_MODE_WF0:
++			ucRcpiValue = ucRcpi0;
++			break;
+ 
+-	case RCPI_MODE_WF1:
+-		ucRcpiValue = ucRcpi1;
+-		break;
++		case RCPI_MODE_WF1:
++			ucRcpiValue = ucRcpi1;
++			break;
+ 
+-	case RCPI_MODE_WF2:
+-		ucRcpiValue = ucRcpi2;
+-		break;
++		case RCPI_MODE_WF2:
++			ucRcpiValue = ucRcpi2;
++			break;
+ 
+-	case RCPI_MODE_WF3:
+-		ucRcpiValue = ucRcpi3;
+-		break;
++		case RCPI_MODE_WF3:
++			ucRcpiValue = ucRcpi3;
++			break;
+ 
+-	case RCPI_MODE_AVG: /*Not recommended for CBW80+80*/
+-		ucRcpiValue = (ucRcpi0 + ucRcpi1) / 2;
+-		break;
++		case RCPI_MODE_AVG: /*Not recommended for CBW80+80*/
++			ucRcpiValue = (ucRcpi0 + ucRcpi1) / 2;
++			break;
+ 
+-	case RCPI_MODE_MAX:
+-		ucRcpiValue =
+-			(ucRcpi0 > ucRcpi1) ? (ucRcpi0) : (ucRcpi1);
+-		break;
++		case RCPI_MODE_MAX:
++			ucRcpiValue =
++				(ucRcpi0 > ucRcpi1) ? (ucRcpi0) : (ucRcpi1);
++			break;
+ 
+-	case RCPI_MODE_MIN:
+-		ucRcpiValue =
+-			(ucRcpi0 < ucRcpi1) ? (ucRcpi0) : (ucRcpi1);
+-		break;
++		case RCPI_MODE_MIN:
++			ucRcpiValue =
++				(ucRcpi0 < ucRcpi1) ? (ucRcpi0) : (ucRcpi1);
++			break;
+ 
+-	default:
+-		break;
++		default:
++			break;
++		}
+ 	}
+ 
+ 	return ucRcpiValue;
+@@ -1828,7 +1779,7 @@
+ 	uint8_t ucRCPI0 = 0, ucRCPI1 = 0;
+ 	uint32_t u4PhyRate;
+ 	uint16_t u2Rate = 0; /* Unit 500 Kbps */
+-	struct RateInfo rRateInfo = {0};
++	struct RxRateInfo rRxRateInfo = {0};
+ 	int status;
+ 
+ 	ASSERT(prAdapter);
+@@ -1837,21 +1788,13 @@
+ 	/* Since MT6885 can not get Rx Data Rate dur to RXV HW Bug*/
+ 
+ 	prGlueInfo = prAdapter->prGlueInfo;
+-	status = wlanGetRxRate(prGlueInfo, ucBssIndex, &u4PhyRate, NULL,
+-				&rRateInfo);
++	status = wlanGetRxRateByBssid(prGlueInfo, ucBssIndex, &u4PhyRate, NULL,
++				&rRxRateInfo);
+ 	/* ucRate(500kbs) = u4PhyRate(100kbps) */
+ 	if (status < 0 || u4PhyRate == 0)
+ 		return;
+ 	u2Rate = u4PhyRate / 5;
+ 
+-	if (rRateInfo.u4Nss == 1) {
+-		if (prGlueInfo->PerfIndCache.ucCurRxNss[ucBssIndex] < 0xff)
+-			prGlueInfo->PerfIndCache.ucCurRxNss[ucBssIndex]++;
+-	} else if (rRateInfo.u4Nss == 2) {
+-		if (prGlueInfo->PerfIndCache.ucCurRxNss2[ucBssIndex] < 0xff)
+-			prGlueInfo->PerfIndCache.ucCurRxNss2[ucBssIndex]++;
+-	}
+-
+ 	/* RCPI */
+ 	prRxStatusGroup3 = prSwRfb->prRxStatusGroup3;
+ 	ucRCPI0 = HAL_RX_STATUS_GET_RCPI0(prRxStatusGroup3);
+diff --git a/chips/common/dbg_connac.c b/chips/common/dbg_connac.c
+index 25eb007..406e0ea 100644
+--- a/chips/common/dbg_connac.c
++++ b/chips/common/dbg_connac.c
+@@ -2146,50 +2146,27 @@
+ }
+ 
+ #ifdef CFG_SUPPORT_LINK_QUALITY_MONITOR
+-int connac_get_rx_rate_info(IN struct ADAPTER *prAdapter,
+-		IN uint8_t ucBssIdx,
+-		OUT uint32_t *pu4Rate, OUT uint32_t *pu4Nss,
+-		OUT uint32_t *pu4RxMode, OUT uint32_t *pu4FrMode,
+-		OUT uint32_t *pu4Sgi)
++int connac_get_rx_rate_info(IN const uint32_t *prRxV,
++		OUT struct RxRateInfo *prRxRateInfo)
+ {
+-	struct STA_RECORD *prStaRec;
+ 	uint32_t rxmode = 0, rate = 0, frmode = 0, sgi = 0, nsts = 0;
+ 	uint32_t groupid = 0, stbc = 0, nss = 0;
+-	uint32_t u4RxVector0 = 0, u4RxVector1 = 0;
+-	uint8_t ucWlanIdx, ucStaIdx;
+ 
+-	if ((!pu4Rate) || (!pu4Nss) || (!pu4RxMode) || (!pu4FrMode) ||
+-		(!pu4Sgi))
++	if (!prRxRateInfo || !prRxV)
+ 		return -1;
+ 
+-	prStaRec = aisGetStaRecOfAP(prAdapter, ucBssIdx);
+-	if (prStaRec) {
+-		ucWlanIdx = prStaRec->ucWlanIndex;
+-	} else {
+-		DBGLOG(SW4, ERROR, "prStaRecOfAP is null\n");
++	if (prRxV[0] == 0 || prRxV[1] == 0) {
++		DBGLOG(SW4, WARN, "RxV1 or RxV2 is 0\n");
+ 		return -1;
+ 	}
+ 
+-	if (wlanGetStaIdxByWlanIdx(prAdapter, ucWlanIdx, &ucStaIdx) ==
+-		WLAN_STATUS_SUCCESS) {
+-		u4RxVector0 = prAdapter->arStaRec[ucStaIdx].u4RxVector0;
+-		u4RxVector1 = prAdapter->arStaRec[ucStaIdx].u4RxVector1;
+-		if ((u4RxVector0 == 0) || (u4RxVector1 == 0)) {
+-			DBGLOG(SW4, WARN, "RxVector1 or RxVector2 is 0\n");
+-			return -1;
+-		}
+-	} else {
+-		DBGLOG(SW4, ERROR, "wlanGetStaIdxByWlanIdx fail\n");
+-		return -1;
+-	}
+-
+-	rate = (u4RxVector0 & RX_VT_RX_RATE_MASK) >> RX_VT_RX_RATE_OFFSET;
+-	nsts = ((u4RxVector1 & RX_VT_NSTS_MASK) >> RX_VT_NSTS_OFFSET);
+-	stbc = ((u4RxVector0 & RX_VT_STBC_MASK) >> RX_VT_STBC_OFFSET);
+-	rxmode = (u4RxVector0 & RX_VT_RX_MODE_MASK) >> RX_VT_RX_MODE_OFFSET;
+-	frmode = (u4RxVector0 & RX_VT_FR_MODE_MASK) >> RX_VT_FR_MODE_OFFSET;
+-	sgi = u4RxVector0 & RX_VT_SHORT_GI;
+-	groupid = (u4RxVector1 & RX_VT_GROUP_ID_MASK) >> RX_VT_GROUP_ID_OFFSET;
++	rate = (prRxV[0] & RX_VT_RX_RATE_MASK) >> RX_VT_RX_RATE_OFFSET;
++	nsts = (prRxV[1] & RX_VT_NSTS_MASK) >> RX_VT_NSTS_OFFSET;
++	stbc = (prRxV[0] & RX_VT_STBC_MASK) >> RX_VT_STBC_OFFSET;
++	rxmode = (prRxV[0] & RX_VT_RX_MODE_MASK) >> RX_VT_RX_MODE_OFFSET;
++	frmode = (prRxV[0] & RX_VT_FR_MODE_MASK) >> RX_VT_FR_MODE_OFFSET;
++	sgi = prRxV[0] & RX_VT_SHORT_GI;
++	groupid = (prRxV[1] & RX_VT_GROUP_ID_MASK) >> RX_VT_GROUP_ID_OFFSET;
+ 
+ 	if ((groupid == 0) || (groupid == 63))
+ 		nsts += 1;
+@@ -2203,11 +2180,11 @@
+ 		return -1;
+ 	}
+ 
+-	*pu4Rate = rate;
+-	*pu4Nss = nss;
+-	*pu4RxMode = rxmode;
+-	*pu4FrMode = frmode;
+-	*pu4Sgi = sgi;
++	prRxRateInfo->u4Rate = rate;
++	prRxRateInfo->u4Nss = nss;
++	prRxRateInfo->u4Mode = rxmode;
++	prRxRateInfo->u4Bw = frmode;
++	prRxRateInfo->u4Gi = sgi;
+ 
+ 	DBGLOG(SW4, TRACE,
+ 		   "rxmode=[%u], rate=[%u], bw=[%u], sgi=[%u], nss=[%u]\n",
+diff --git a/chips/common/dbg_connac2x.c b/chips/common/dbg_connac2x.c
+index cfdddfc..1810e35 100644
+--- a/chips/common/dbg_connac2x.c
++++ b/chips/common/dbg_connac2x.c
+@@ -1507,7 +1507,8 @@
+ 					rate_idx + 1,
+ 					txrate[rate_idx],
+ 					txmode,
+-					RATE_V2_HW_TX_MODE_STR[txmode],
++					(txmode < ENUM_TX_MODE_NUM ?
++					RATE_V2_HW_TX_MODE_STR[txmode] : "N/A"),
+ 					mcs,
+ 					mcs < 4 ? HW_TX_RATE_CCK_STR[mcs] :
+ 					   HW_TX_RATE_CCK_STR[4],
+@@ -1518,7 +1519,8 @@
+ 					rate_idx + 1,
+ 					txrate[rate_idx],
+ 					txmode,
+-					RATE_V2_HW_TX_MODE_STR[txmode],
++					(txmode < ENUM_TX_MODE_NUM ?
++					RATE_V2_HW_TX_MODE_STR[txmode] : "N/A"),
+ 					mcs,
+ 					nicHwRateOfdmStr(mcs),
+ 					nss, stbc);
+@@ -1788,49 +1790,31 @@
+ 		uint8_t ucStaIdx)
+ {
+ 	int32_t i4BytesWritten = 0;
+-	uint32_t txmode, rate, frmode, sgi, nsts, ldpc, stbc, groupid, mu;
+-	uint32_t u4RxVector0 = 0, u4RxVector1 = 0, u4RxVector2 = 0;
++	uint32_t txmode, rate, frmode, sgi, nsts, ldpc, stbc, mu;
++	uint32_t dcm = 0, u4RxV0 = 0;
+ 
+-	/* Group3 PRXV1[0:31] */
+-	u4RxVector0 = prAdapter->arStaRec[ucStaIdx].u4RxVector0;
+-	/* Group5 C-B-0[0:31] */
+-	u4RxVector1 = prAdapter->arStaRec[ucStaIdx].u4RxVector1;
+-	/* Group5 C-B-1[0:31] */
+-	u4RxVector2 = prAdapter->arStaRec[ucStaIdx].u4RxVector2;
+-
+-	DBGLOG(REQ, LOUD, "****** P-RXVector1 = 0x%08x ******\n",
+-		   u4RxVector0);
+-	DBGLOG(REQ, LOUD, "****** C-RXVector1 = 0x%08x ******\n",
+-		   u4RxVector1);
+-	DBGLOG(REQ, LOUD, "****** C-RXVector2 = 0x%08x ******\n",
+-		   u4RxVector2);
+-
+-	/* P-RXV1 */
+-	rate = (u4RxVector0 & CONNAC2X_RX_VT_RX_RATE_MASK)
+-				>> CONNAC2X_RX_VT_RX_RATE_OFFSET;
+-	nsts = ((u4RxVector0 & CONNAC2X_RX_VT_NSTS_MASK)
+-				>> CONNAC2X_RX_VT_NSTS_OFFSET);
+-	ldpc = u4RxVector0 & CONNAC2X_RX_VT_LDPC;
++	/* Group3 PRXV0[0:31] */
++	u4RxV0 = prAdapter->arStaRec[ucStaIdx].au4RxV[0];
+ 
+-	/* C-B-0 */
+-	stbc = (u4RxVector1 & CONNAC2X_RX_VT_STBC_MASK)
+-				>> CONNAC2X_RX_VT_STBC_OFFSET;
+-	txmode = (u4RxVector1 & CONNAC2X_RX_VT_RX_MODE_MASK)
+-				>> CONNAC2X_RX_VT_RX_MODE_OFFSET;
+-	frmode = (u4RxVector1 & CONNAC2X_RX_VT_FR_MODE_MASK)
+-				>> CONNAC2X_RX_VT_FR_MODE_OFFSET;
+-	sgi = (u4RxVector1 & CONNAC2X_RX_VT_SHORT_GI_MASK)
+-				>> CONNAC2X_RX_VT_SHORT_GI_OFFSET;
+-	/* C-B-1 */
+-	groupid = (u4RxVector2 & CONNAC2X_RX_VT_GROUP_ID_MASK)
+-				>> CONNAC2X_RX_VT_GROUP_ID_OFFSET;
++	/* P-RXV0 */
++	rate = (u4RxV0 & CONNAC2X_RX_VT_RX_RATE_MASK)
++					>> CONNAC2X_RX_VT_RX_RATE_OFFSET;
++	nsts = (u4RxV0 & CONNAC2X_RX_VT_NSTS_MASK)
++					>> CONNAC2X_RX_VT_NSTS_OFFSET;
++	ldpc = u4RxV0 & CONNAC2X_RX_VT_LDPC;
++	frmode = (u4RxV0 & CONNAC2X_RX_VT_FR_MODE_MASK_V2)
++					>> CONNAC2X_RX_VT_FR_MODE_OFFSET_V2;
++	sgi = (u4RxV0 & CONNAC2X_RX_VT_SHORT_GI_MASK_V2)
++					>> CONNAC2X_RX_VT_SHORT_GI_OFFSET_V2;
++	stbc = (u4RxV0 & CONNAC2X_RX_VT_STBC_MASK_V2)
++					>> CONNAC2X_RX_VT_STBC_OFFSET_V2;
++	txmode = (u4RxV0 & CONNAC2X_RX_VT_RX_MODE_MASK_V2)
++					>> CONNAC2X_RX_VT_RX_MODE_OFFSET_V2;
++	mu = u4RxV0 & CONNAC2X_RX_VT_MU;
++	dcm = u4RxV0 & CONNAC2X_RX_VT_DCM;
+ 
+-	if (groupid && groupid != 63) {
+-		mu = 1;
+-	} else {
+-		mu = 0;
++	if (mu == 0)
+ 		nsts += 1;
+-	}
+ 
+ 	i4BytesWritten += kalScnprintf(pcCommand + i4BytesWritten,
+ 		i4TotalLen - i4BytesWritten, "%-20s%s", "Last RX Rate", " = ");
+@@ -1878,19 +1862,23 @@
+ 	i4BytesWritten += kalScnprintf(pcCommand + i4BytesWritten,
+ 		i4TotalLen - i4BytesWritten, "%s", stbc == 0 ? "" : "STBC, ");
+ 
+-	if (mu) {
+-		i4BytesWritten += kalScnprintf(pcCommand + i4BytesWritten,
+-			i4TotalLen - i4BytesWritten, "%s, %s, %s (%d)\n",
++	i4BytesWritten += kalScnprintf(pcCommand + i4BytesWritten,
++			i4TotalLen - i4BytesWritten, "%s",
++			dcm == 0 ? "" : "DCM, ");
++
++	if (mu)
++		i4BytesWritten += kalScnprintf(
++			pcCommand + i4BytesWritten,
++			i4TotalLen - i4BytesWritten, "%s, %s, %s\n",
+ 			txmode < ENUM_TX_MODE_NUM ?
+ 			HW_TX_MODE_STR[txmode] : "N/A",
+-			ldpc == 0 ? "BCC" : "LDPC", "MU", groupid);
+-	} else {
++			ldpc == 0 ? "BCC" : "LDPC", "MU");
++	else
+ 		i4BytesWritten += kalScnprintf(pcCommand + i4BytesWritten,
+ 			i4TotalLen - i4BytesWritten, "%s, %s\n",
+ 			txmode < ENUM_TX_MODE_NUM ?
+ 			HW_TX_MODE_STR[txmode] : "N/A",
+ 			ldpc == 0 ? "BCC" : "LDPC");
+-	}
+ 
+ 	return i4BytesWritten;
+ }
+@@ -1903,23 +1891,22 @@
+ {
+ 	int32_t i4RSSI0 = 0, i4RSSI1 = 0, i4RSSI2 = 0, i4RSSI3 = 0;
+ 	int32_t i4BytesWritten = 0;
+-	uint32_t u4CRxv4th = 0;
++	uint32_t u4RCPI = 0;
+ 
+-	/* Group5 C-B-3[0:31] */
+-	u4CRxv4th = prAdapter->arStaRec[ucStaIdx].u4RxVector4;
++	u4RCPI = prAdapter->arStaRec[ucStaIdx].au4RxV[1];
+ 
+-	DBGLOG(REQ, LOUD, "****** C-RXVector4th cycle = 0x%08x ******\n",
+-		   u4CRxv4th);
++	DBGLOG(REQ, LOUD, "****** RCPI = 0x%08x ******\n",
++		   u4RCPI);
+ 
+-	i4RSSI0 = RCPI_TO_dBm((u4CRxv4th & CONNAC2X_RX_VT_RCPI0_MASK) >>
++	i4RSSI0 = RCPI_TO_dBm((u4RCPI & CONNAC2X_RX_VT_RCPI0_MASK) >>
+ 			      CONNAC2X_RX_VT_RCPI0_OFFSET);
+-	i4RSSI1 = RCPI_TO_dBm((u4CRxv4th & CONNAC2X_RX_VT_RCPI1_MASK) >>
++	i4RSSI1 = RCPI_TO_dBm((u4RCPI & CONNAC2X_RX_VT_RCPI1_MASK) >>
+ 			      CONNAC2X_RX_VT_RCPI1_OFFSET);
+ 
+ 	if (prAdapter->rWifiVar.ucNSS > 2) {
+-		i4RSSI2 = RCPI_TO_dBm((u4CRxv4th & CONNAC2X_RX_VT_RCPI2_MASK) >>
++		i4RSSI2 = RCPI_TO_dBm((u4RCPI & CONNAC2X_RX_VT_RCPI2_MASK) >>
+ 				      CONNAC2X_RX_VT_RCPI2_OFFSET);
+-		i4RSSI3 = RCPI_TO_dBm((u4CRxv4th & CONNAC2X_RX_VT_RCPI3_MASK) >>
++		i4RSSI3 = RCPI_TO_dBm((u4RCPI & CONNAC2X_RX_VT_RCPI3_MASK) >>
+ 				      CONNAC2X_RX_VT_RCPI3_OFFSET);
+ 
+ 		i4BytesWritten += kalScnprintf(pcCommand + i4BytesWritten,
+@@ -4061,66 +4048,33 @@
+ #endif /* _HIF_PCIE || _HIF_AXI */
+ 
+ #ifdef CFG_SUPPORT_LINK_QUALITY_MONITOR
+-int connac2x_get_rx_rate_info(IN struct ADAPTER *prAdapter,
+-		IN uint8_t ucBssIdx,
+-		OUT uint32_t *pu4Rate, OUT uint32_t *pu4Nss,
+-		OUT uint32_t *pu4RxMode, OUT uint32_t *pu4FrMode,
+-		OUT uint32_t *pu4Sgi)
++int connac2x_get_rx_rate_info(IN const uint32_t *prRxV,
++		OUT struct RxRateInfo *prRxRateInfo)
+ {
+-	struct STA_RECORD *prStaRec;
+ 	uint32_t rxmode = 0, rate = 0, frmode = 0, sgi = 0, nsts = 0;
+-	uint32_t groupid = 0, stbc = 0, nss = 0;
+-	uint32_t u4RxVector0 = 0, u4RxVector1 = 0, u4RxVector2 = 0;
+-	uint8_t ucWlanIdx, ucStaIdx;
+-
+-	if ((!pu4Rate) || (!pu4Nss) || (!pu4RxMode) || (!pu4FrMode) ||
+-		(!pu4Sgi))
+-		return -1;
+-
+-	prStaRec = aisGetStaRecOfAP(prAdapter, ucBssIdx);
+-	if (prStaRec) {
+-		ucWlanIdx = prStaRec->ucWlanIndex;
+-	} else {
+-		DBGLOG(SW4, ERROR, "prStaRecOfAP is null\n");
+-		return -1;
+-	}
++	uint32_t stbc = 0, nss = 0, mu = 0;
+ 
+-	if (wlanGetStaIdxByWlanIdx(prAdapter, ucWlanIdx, &ucStaIdx) ==
+-		WLAN_STATUS_SUCCESS) {
+-		u4RxVector0 = prAdapter->arStaRec[ucStaIdx].u4RxVector0;
+-		u4RxVector1 = prAdapter->arStaRec[ucStaIdx].u4RxVector1;
+-		u4RxVector2 = prAdapter->arStaRec[ucStaIdx].u4RxVector2;
+-		if ((u4RxVector0 == 0) || (u4RxVector1 == 0) ||
+-			(u4RxVector2 == 0)) {
+-			DBGLOG(SW4, WARN, "RxVector1 or RxVector2 is 0\n");
+-			return -1;
+-		}
+-	} else {
+-		DBGLOG(SW4, ERROR, "wlanGetStaIdxByWlanIdx fail\n");
++	if (!prRxRateInfo || !prRxV)
+ 		return -1;
+-	}
+ 
+ 	/* P-RXV1 */
+-	rate = (u4RxVector0 & CONNAC2X_RX_VT_RX_RATE_MASK)
++	rate = (prRxV[0] & CONNAC2X_RX_VT_RX_RATE_MASK)
+ 				>> CONNAC2X_RX_VT_RX_RATE_OFFSET;
+-	nsts = ((u4RxVector0 & CONNAC2X_RX_VT_NSTS_MASK)
+-				>> CONNAC2X_RX_VT_NSTS_OFFSET);
++	nsts = (prRxV[0] & CONNAC2X_RX_VT_NSTS_MASK)
++				>> CONNAC2X_RX_VT_NSTS_OFFSET;
++	frmode = (prRxV[0] & CONNAC2X_RX_VT_FR_MODE_MASK_V2)
++					>> CONNAC2X_RX_VT_FR_MODE_OFFSET_V2;
++	sgi = (prRxV[0] & CONNAC2X_RX_VT_SHORT_GI_MASK_V2)
++					>> CONNAC2X_RX_VT_SHORT_GI_OFFSET_V2;
++	rxmode = (prRxV[0] & CONNAC2X_RX_VT_RX_MODE_MASK_V2)
++					>> CONNAC2X_RX_VT_RX_MODE_OFFSET_V2;
++	stbc = (prRxV[0] & CONNAC2X_RX_VT_STBC_MASK_V2)
++				>> CONNAC2X_RX_VT_STBC_OFFSET_V2;
++	mu = prRxV[0] & CONNAC2X_RX_VT_MU;
+ 
+-	/* C-B-0 */
+-	rxmode = (u4RxVector1 & CONNAC2X_RX_VT_RX_MODE_MASK)
+-				>> CONNAC2X_RX_VT_RX_MODE_OFFSET;
+-	frmode = (u4RxVector1 & CONNAC2X_RX_VT_FR_MODE_MASK)
+-				>> CONNAC2X_RX_VT_FR_MODE_OFFSET;
+-	sgi = (u4RxVector1 & CONNAC2X_RX_VT_SHORT_GI_MASK)
+-				>> CONNAC2X_RX_VT_SHORT_GI_OFFSET;
+-	stbc = (u4RxVector1 & CONNAC2X_RX_VT_STBC_MASK)
+-				>> CONNAC2X_RX_VT_STBC_OFFSET;
+-	/* C-B-1 */
+-	groupid = (u4RxVector2 & CONNAC2X_RX_VT_GROUP_ID_MASK)
+-				>> CONNAC2X_RX_VT_GROUP_ID_OFFSET;
++	if (mu == 0)
++		nsts += 1;
+ 
+-	/* Since NSTS gets from RXRPT, always plus one */
+-	nsts += 1;
+ 	if (nsts == 1)
+ 		nss = nsts;
+ 	else
+@@ -4131,11 +4085,11 @@
+ 		return -1;
+ 	}
+ 
+-	*pu4Rate = rate;
+-	*pu4Nss = nss;
+-	*pu4RxMode = rxmode;
+-	*pu4FrMode = frmode;
+-	*pu4Sgi = sgi;
++	prRxRateInfo->u4Rate = rate;
++	prRxRateInfo->u4Nss = nss;
++	prRxRateInfo->u4Mode = rxmode;
++	prRxRateInfo->u4Bw = frmode;
++	prRxRateInfo->u4Gi = sgi;
+ 
+ 	DBGLOG(SW4, TRACE,
+ 		   "rxmode=[%u], rate=[%u], bw=[%u], sgi=[%u], nss=[%u]\n",
+diff --git a/chips/soc3_0/soc3_0.c b/chips/soc3_0/soc3_0.c
+index 7e29200..06eba9c 100644
+--- a/chips/soc3_0/soc3_0.c
++++ b/chips/soc3_0/soc3_0.c
+@@ -1094,7 +1094,6 @@
+ 	.is_support_hw_amsdu = TRUE,
+ 	.is_support_asic_lp = TRUE,
+ 	.is_support_wfdma1 = TRUE,
+-	.get_rxv_from_rxrpt = TRUE,
+ 	.is_support_nvram_fragment = TRUE,
+ 	.asicWfdmaReInit = asicConnac2xWfdmaReInit,
+ 	.asicWfdmaReInit_handshakeInit = asicConnac2xWfdmaDummyCrWrite,
+diff --git a/chips/soc5_0/dbg_soc5_0.c b/chips/soc5_0/dbg_soc5_0.c
+index f192247..17faaa7 100644
+--- a/chips/soc5_0/dbg_soc5_0.c
++++ b/chips/soc5_0/dbg_soc5_0.c
+@@ -1029,55 +1029,33 @@
+ }
+ 
+ #ifdef CFG_SUPPORT_LINK_QUALITY_MONITOR
+-int soc5_0_get_rx_rate_info(IN struct ADAPTER *prAdapter,
+-		IN uint8_t ucBssIdx,
+-		OUT uint32_t *pu4Rate, OUT uint32_t *pu4Nss,
+-		OUT uint32_t *pu4RxMode, OUT uint32_t *pu4FrMode,
+-		OUT uint32_t *pu4Sgi)
++int soc5_0_get_rx_rate_info(IN const uint32_t *prRxV,
++		OUT struct RxRateInfo *prRxRateInfo)
+ {
+-	struct STA_RECORD *prStaRec;
+ 	uint32_t rxmode = 0, rate = 0, frmode = 0, sgi = 0, nsts = 0;
+ 	uint32_t stbc = 0, nss = 0;
+-	uint32_t u4RxVector0 = 0;
+-	uint8_t ucWlanIdx, ucStaIdx;
+ 
+-	if ((!pu4Rate) || (!pu4Nss) || (!pu4RxMode) || (!pu4FrMode) ||
+-		(!pu4Sgi))
++	if (!prRxRateInfo || !prRxV)
+ 		return -1;
+ 
+-	prStaRec = aisGetStaRecOfAP(prAdapter, ucBssIdx);
+-	if (prStaRec) {
+-		ucWlanIdx = prStaRec->ucWlanIndex;
+-	} else {
+-		DBGLOG(SW4, ERROR, "prStaRecOfAP is null\n");
++	if (prRxV[0] == 0) {
++		DBGLOG(SW4, WARN, "u4RxV0 is 0\n");
+ 		return -1;
+ 	}
+ 
+-	if (wlanGetStaIdxByWlanIdx(prAdapter, ucWlanIdx, &ucStaIdx) ==
+-		WLAN_STATUS_SUCCESS) {
+-		u4RxVector0 = prAdapter->arStaRec[ucStaIdx].u4RxVector0;
+-		if (u4RxVector0 == 0) {
+-			DBGLOG(SW4, WARN, "u4RxVector0 is 0\n");
+-			return -1;
+-		}
+-	} else {
+-		DBGLOG(SW4, ERROR, "wlanGetStaIdxByWlanIdx fail\n");
+-		return -1;
+-	}
+-
+ 	/* P-RXV1 */
+-	rate = (u4RxVector0 & SOC5_0_RX_VT_RX_RATE_MASK)
++	rate = (prRxV[0] & SOC5_0_RX_VT_RX_RATE_MASK)
+ 				>> SOC5_0_RX_VT_RX_RATE_OFFSET;
+-	nsts = ((u4RxVector0 & SOC5_0_RX_VT_NSTS_MASK)
+-				>> SOC5_0_RX_VT_NSTS_OFFSET);
++	nsts = (prRxV[0] & SOC5_0_RX_VT_NSTS_MASK)
++				>> SOC5_0_RX_VT_NSTS_OFFSET;
+ 	/* C-B-0 */
+-	rxmode = (u4RxVector0 & SOC5_0_RX_VT_TXMODE_MASK)
++	rxmode = (prRxV[0] & SOC5_0_RX_VT_TXMODE_MASK)
+ 				>> SOC5_0_RX_VT_TXMODE_OFFSET;
+-	frmode = (u4RxVector0 & SOC5_0_RX_VT_FR_MODE_MASK)
++	frmode = (prRxV[0] & SOC5_0_RX_VT_FR_MODE_MASK)
+ 				>> SOC5_0_RX_VT_FR_MODE_OFFSET;
+-	sgi = (u4RxVector0 & SOC5_0_RX_VT_GI_MASK)
++	sgi = (prRxV[0] & SOC5_0_RX_VT_GI_MASK)
+ 				>> SOC5_0_RX_VT_GI_OFFSET;
+-	stbc = (u4RxVector0 & SOC5_0_RX_VT_STBC_MASK)
++	stbc = (prRxV[0] & SOC5_0_RX_VT_STBC_MASK)
+ 				>> SOC5_0_RX_VT_STBC_OFFSET;
+ 
+ 	nsts += 1;
+@@ -1091,15 +1069,15 @@
+ 		return -1;
+ 	}
+ 
+-	*pu4Rate = rate;
+-	*pu4Nss = nss;
+-	*pu4RxMode = rxmode;
+-	*pu4FrMode = frmode;
+-	*pu4Sgi = sgi;
++	prRxRateInfo->u4Rate = rate;
++	prRxRateInfo->u4Nss = nss;
++	prRxRateInfo->u4Mode = rxmode;
++	prRxRateInfo->u4Bw = frmode;
++	prRxRateInfo->u4Gi = sgi;
+ 
+ 	DBGLOG(SW4, TRACE,
+ 		   "rxvec0=[0x%x] rxmode=[%u], rate=[%u], bw=[%u], sgi=[%u], nss=[%u]\n",
+-		   u4RxVector0, rxmode, rate, frmode, sgi, nss
++		   prRxV[0], rxmode, rate, frmode, sgi, nss
+ 	);
+ 
+ 	return 0;
+@@ -1108,7 +1086,7 @@
+ 
+ 
+ void soc5_0_get_rx_link_stats(IN struct ADAPTER *prAdapter,
+-	IN struct SW_RFB *prSwRfb, IN uint32_t u4RxVector0)
++	IN struct SW_RFB *prSwRfb, IN uint32_t *pu4RxV)
+ {
+ #if CFG_SUPPORT_LLS
+ 	static const uint8_t TX_MODE_2_LLS_MODE[] = {
+@@ -1137,37 +1115,39 @@
+ 		/* Save format:  0  1  2   3   4   5   6    7 */
+ 	struct STATS_LLS_WIFI_RATE rate = {0};
+ 	struct STA_RECORD *prStaRec;
++	uint32_t u4RxV0 = pu4RxV[0];
++	uint32_t mcsIdx;
+ 
+ 	if (prAdapter->rWifiVar.fgLinkStatsDump)
+ 		DBGLOG(RX, INFO, "RXV: pmbl=%u nsts=%u stbc=%u bw=%u mcs=%u",
+-			RXV_GET_TXMODE(u4RxVector0),
+-			RXV_GET_RX_NSTS(u4RxVector0),
+-			RXV_GET_STBC(u4RxVector0),
+-			RXV_GET_FR_MODE(u4RxVector0),
+-			RXV_GET_RX_RATE(u4RxVector0));
++			RXV_GET_TXMODE(u4RxV0),
++			RXV_GET_RX_NSTS(u4RxV0),
++			RXV_GET_STBC(u4RxV0),
++			RXV_GET_FR_MODE(u4RxV0),
++			RXV_GET_RX_RATE(u4RxV0));
+ 
+ 	if (!(prSwRfb->ucPayloadFormat == RX_PAYLOAD_FORMAT_MSDU ||
+-		prSwRfb->ucPayloadFormat == RX_PAYLOAD_FORMAT_FIRST_SUB_AMSDU))
++	      prSwRfb->ucPayloadFormat == RX_PAYLOAD_FORMAT_FIRST_SUB_AMSDU))
+ 		return;
+ 
+-	rate.preamble = TX_MODE_2_LLS_MODE[RXV_GET_TXMODE(u4RxVector0)];
++	rate.preamble = TX_MODE_2_LLS_MODE[RXV_GET_TXMODE(u4RxV0)];
+ 
+ 	if (rate.preamble == LLS_MODE_RESERVED)
+ 		return;
+ 
+-	rate.bw = RXV_GET_FR_MODE(u4RxVector0);
+-	rate.nss = RXV_GET_RX_NSTS(u4RxVector0);
++	rate.bw = RXV_GET_FR_MODE(u4RxV0);
++	rate.nss = RXV_GET_RX_NSTS(u4RxV0);
+ 	if (rate.preamble >= LLS_MODE_VHT) {
+-		if (RXV_GET_STBC(u4RxVector0))
++		if (RXV_GET_STBC(u4RxV0))
+ 			rate.nss /= 2;
+ 	}
+ 
+-	rate.rateMcsIdx = RXV_GET_RX_RATE(u4RxVector0);
+-
++	rate.rateMcsIdx = RXV_GET_RX_RATE(u4RxV0) & 0xF; /* 0 ~ 15 */
+ 	if (rate.preamble == LLS_MODE_CCK)
+ 		rate.rateMcsIdx &= 0x3; /* 0: 1M; 1: 2M; 2: 5.5M; 3: 11M  */
+ 	else if (rate.preamble == LLS_MODE_OFDM)
+ 		rate.rateMcsIdx = OFDM_RATE[rate.rateMcsIdx & 0x7];
++	mcsIdx = rate.rateMcsIdx;
+ 
+ 	if (rate.nss >= STATS_LLS_MAX_NSS_NUM)
+ 		goto wrong_rate;
+@@ -1179,38 +1159,38 @@
+ 	}
+ 
+ 	if (rate.preamble == LLS_MODE_OFDM) {
+-		if (rate.rateMcsIdx >= STATS_LLS_OFDM_NUM)
++		if (mcsIdx >= STATS_LLS_OFDM_NUM)
+ 			goto wrong_rate;
+-		prStaRec->u4RxMpduOFDM[0][0][rate.rateMcsIdx]++;
++		prStaRec->u4RxMpduOFDM[0][0][mcsIdx]++;
+ 	} else if (rate.preamble == LLS_MODE_CCK) {
+-		if (rate.rateMcsIdx >= STATS_LLS_CCK_NUM)
++		if (mcsIdx >= STATS_LLS_CCK_NUM)
+ 			goto wrong_rate;
+-		prStaRec->u4RxMpduCCK[0][0][rate.rateMcsIdx]++;
++		prStaRec->u4RxMpduCCK[0][0][mcsIdx]++;
+ 	} else if (rate.preamble == LLS_MODE_HT) {
+ 		if (rate.bw >= STATS_LLS_MAX_HT_BW_NUM ||
+-				rate.rateMcsIdx >= STATS_LLS_HT_NUM)
++				mcsIdx >= STATS_LLS_HT_NUM)
+ 			goto wrong_rate;
+-		prStaRec->u4RxMpduHT[0][rate.bw][rate.rateMcsIdx]++;
++		prStaRec->u4RxMpduHT[0][rate.bw][mcsIdx]++;
+ 	} else if (rate.preamble == LLS_MODE_VHT) {
+ 		if (rate.bw >= STATS_LLS_MAX_VHT_BW_NUM ||
+-				rate.rateMcsIdx >= STATS_LLS_VHT_NUM)
++				mcsIdx >= STATS_LLS_VHT_NUM)
+ 			goto wrong_rate;
+-		prStaRec->u4RxMpduVHT[rate.nss][rate.bw][rate.rateMcsIdx]++;
++		prStaRec->u4RxMpduVHT[rate.nss][rate.bw][mcsIdx]++;
+ 	} else if (rate.preamble == LLS_MODE_HE) {
+ 		if (rate.bw >= STATS_LLS_MAX_HE_BW_NUM ||
+-				rate.rateMcsIdx >= STATS_LLS_HE_NUM)
++				mcsIdx >= STATS_LLS_HE_NUM)
+ 			goto wrong_rate;
+-		prStaRec->u4RxMpduHE[rate.nss][rate.bw][rate.rateMcsIdx]++;
++		prStaRec->u4RxMpduHE[rate.nss][rate.bw][mcsIdx]++;
+ 	}
+ 
+ 	if (prAdapter->rWifiVar.fgLinkStatsDump)
+ 		DBGLOG(RX, INFO, "rate preamble=%u, nss=%u, bw=%u, mcsIdx=%u",
+-			rate.preamble, rate.nss, rate.bw, rate.rateMcsIdx);
++			rate.preamble, rate.nss, rate.bw, mcsIdx);
+ 	return;
+ 
+ wrong_rate:
+ 	DBGLOG(RX, WARN, "Invalid rate preamble=%u, nss=%u, bw=%u, mcsIdx=%u",
+-			rate.preamble, rate.nss, rate.bw, rate.rateMcsIdx);
++			rate.preamble, rate.nss, rate.bw, mcsIdx);
+ #endif
+ }
+ 
+diff --git a/chips/soc7_0/dbg_soc7_0.c b/chips/soc7_0/dbg_soc7_0.c
+index f98b474..8b0ad69 100644
+--- a/chips/soc7_0/dbg_soc7_0.c
++++ b/chips/soc7_0/dbg_soc7_0.c
+@@ -829,55 +829,33 @@
+ }
+ 
+ #ifdef CFG_SUPPORT_LINK_QUALITY_MONITOR
+-int soc7_0_get_rx_rate_info(IN struct ADAPTER *prAdapter,
+-		IN uint8_t ucBssIdx,
+-		OUT uint32_t *pu4Rate, OUT uint32_t *pu4Nss,
+-		OUT uint32_t *pu4RxMode, OUT uint32_t *pu4FrMode,
+-		OUT uint32_t *pu4Sgi)
++int soc7_0_get_rx_rate_info(IN const uint32_t *prRxV,
++		OUT struct RxRateInfo *prRxRateInfo)
+ {
+-	struct STA_RECORD *prStaRec;
+ 	uint32_t rxmode = 0, rate = 0, frmode = 0, sgi = 0, nsts = 0;
+ 	uint32_t stbc = 0, nss = 0;
+-	uint32_t u4RxVector0 = 0;
+-	uint8_t ucWlanIdx, ucStaIdx;
+ 
+-	if ((!pu4Rate) || (!pu4Nss) || (!pu4RxMode) || (!pu4FrMode) ||
+-		(!pu4Sgi))
++	if (!prRxRateInfo || !prRxV)
+ 		return -1;
+ 
+-	prStaRec = aisGetStaRecOfAP(prAdapter, ucBssIdx);
+-	if (prStaRec) {
+-		ucWlanIdx = prStaRec->ucWlanIndex;
+-	} else {
+-		DBGLOG(SW4, ERROR, "prStaRecOfAP is null\n");
++	if (prRxV[0] == 0) {
++		DBGLOG(SW4, WARN, "u4RxV0 is 0\n");
+ 		return -1;
+ 	}
+ 
+-	if (wlanGetStaIdxByWlanIdx(prAdapter, ucWlanIdx, &ucStaIdx) ==
+-		WLAN_STATUS_SUCCESS) {
+-		u4RxVector0 = prAdapter->arStaRec[ucStaIdx].u4RxVector0;
+-		if (u4RxVector0 == 0) {
+-			DBGLOG(SW4, WARN, "u4RxVector0 is 0\n");
+-			return -1;
+-		}
+-	} else {
+-		DBGLOG(SW4, ERROR, "wlanGetStaIdxByWlanIdx fail\n");
+-		return -1;
+-	}
+-
+ 	/* P-RXV1 */
+-	rate = (u4RxVector0 & SOC7_0_RX_VT_RX_RATE_MASK)
++	rate = (prRxV[0] & SOC7_0_RX_VT_RX_RATE_MASK)
+ 				>> SOC7_0_RX_VT_RX_RATE_OFFSET;
+-	nsts = ((u4RxVector0 & SOC7_0_RX_VT_NSTS_MASK)
+-				>> SOC7_0_RX_VT_NSTS_OFFSET);
++	nsts = (prRxV[0] & SOC7_0_RX_VT_NSTS_MASK)
++				>> SOC7_0_RX_VT_NSTS_OFFSET;
+ 	/* C-B-0 */
+-	rxmode = (u4RxVector0 & SOC7_0_RX_VT_TXMODE_MASK)
++	rxmode = (prRxV[0] & SOC7_0_RX_VT_TXMODE_MASK)
+ 				>> SOC7_0_RX_VT_TXMODE_OFFSET;
+-	frmode = (u4RxVector0 & SOC7_0_RX_VT_FR_MODE_MASK)
++	frmode = (prRxV[0] & SOC7_0_RX_VT_FR_MODE_MASK)
+ 				>> SOC7_0_RX_VT_FR_MODE_OFFSET;
+-	sgi = (u4RxVector0 & SOC7_0_RX_VT_GI_MASK)
++	sgi = (prRxV[0] & SOC7_0_RX_VT_GI_MASK)
+ 				>> SOC7_0_RX_VT_GI_OFFSET;
+-	stbc = (u4RxVector0 & SOC7_0_RX_VT_STBC_MASK)
++	stbc = (prRxV[0] & SOC7_0_RX_VT_STBC_MASK)
+ 				>> SOC7_0_RX_VT_STBC_OFFSET;
+ 
+ 	nsts += 1;
+@@ -891,15 +869,15 @@
+ 		return -1;
+ 	}
+ 
+-	*pu4Rate = rate;
+-	*pu4Nss = nss;
+-	*pu4RxMode = rxmode;
+-	*pu4FrMode = frmode;
+-	*pu4Sgi = sgi;
++	prRxRateInfo->u4Rate = rate;
++	prRxRateInfo->u4Nss = nss;
++	prRxRateInfo->u4Mode = rxmode;
++	prRxRateInfo->u4Bw = frmode;
++	prRxRateInfo->u4Gi = sgi;
+ 
+ 	DBGLOG(SW4, TRACE,
+ 		   "rxvec0=[0x%x] rxmode=[%u], rate=[%u], bw=[%u], sgi=[%u], nss=[%u]\n",
+-		   u4RxVector0, rxmode, rate, frmode, sgi, nss
++		   prRxV[0], rxmode, rate, frmode, sgi, nss
+ 	);
+ 
+ 	return 0;
+@@ -907,7 +885,7 @@
+ #endif
+ 
+ void soc7_0_get_rx_link_stats(IN struct ADAPTER *prAdapter,
+-	IN struct SW_RFB *prSwRfb, IN uint32_t u4RxVector0)
++	IN struct SW_RFB *prSwRfb, IN uint32_t *pu4RxV)
+ {
+ #if CFG_SUPPORT_LLS
+ 	static const uint8_t TX_MODE_2_LLS_MODE[] = {
+@@ -936,37 +914,39 @@
+ 		/* Save format:  0  1  2   3   4   5   6    7 */
+ 	struct STATS_LLS_WIFI_RATE rate = {0};
+ 	struct STA_RECORD *prStaRec;
++	uint32_t u4RxV0 = pu4RxV[0];
++	uint32_t mcsIdx;
+ 
+ 	if (prAdapter->rWifiVar.fgLinkStatsDump)
+ 		DBGLOG(RX, INFO, "RXV: pmbl=%u nsts=%u stbc=%u bw=%u mcs=%u",
+-			RXV_GET_TXMODE(u4RxVector0),
+-			RXV_GET_RX_NSTS(u4RxVector0),
+-			RXV_GET_STBC(u4RxVector0),
+-			RXV_GET_FR_MODE(u4RxVector0),
+-			RXV_GET_RX_RATE(u4RxVector0));
++			RXV_GET_TXMODE(u4RxV0),
++			RXV_GET_RX_NSTS(u4RxV0),
++			RXV_GET_STBC(u4RxV0),
++			RXV_GET_FR_MODE(u4RxV0),
++			RXV_GET_RX_RATE(u4RxV0));
+ 
+ 	if (!(prSwRfb->ucPayloadFormat == RX_PAYLOAD_FORMAT_MSDU ||
+-		prSwRfb->ucPayloadFormat == RX_PAYLOAD_FORMAT_FIRST_SUB_AMSDU))
++	      prSwRfb->ucPayloadFormat == RX_PAYLOAD_FORMAT_FIRST_SUB_AMSDU))
+ 		return;
+ 
+-	rate.preamble = TX_MODE_2_LLS_MODE[RXV_GET_TXMODE(u4RxVector0)];
++	rate.preamble = TX_MODE_2_LLS_MODE[RXV_GET_TXMODE(u4RxV0)];
+ 
+ 	if (rate.preamble == LLS_MODE_RESERVED)
+ 		return;
+ 
+-	rate.bw = RXV_GET_FR_MODE(u4RxVector0);
+-	rate.nss = RXV_GET_RX_NSTS(u4RxVector0);
++	rate.bw = RXV_GET_FR_MODE(u4RxV0);
++	rate.nss = RXV_GET_RX_NSTS(u4RxV0);
+ 	if (rate.preamble >= LLS_MODE_VHT) {
+-		if (RXV_GET_STBC(u4RxVector0))
++		if (RXV_GET_STBC(u4RxV0))
+ 			rate.nss /= 2;
+ 	}
+ 
+-	rate.rateMcsIdx = RXV_GET_RX_RATE(u4RxVector0);
+-
++	rate.rateMcsIdx = RXV_GET_RX_RATE(u4RxV0) & 0xF; /* 0 ~ 15 */
+ 	if (rate.preamble == LLS_MODE_CCK)
+ 		rate.rateMcsIdx &= 0x3; /* 0: 1M; 1: 2M; 2: 5.5M; 3: 11M  */
+ 	else if (rate.preamble == LLS_MODE_OFDM)
+-		rate.rateMcsIdx = OFDM_RATE[rate.rateMcsIdx & 0x7];
++		rate.rateMcsIdx = OFDM_RATE[(uint8_t)(rate.rateMcsIdx & 0x7)];
++	mcsIdx = rate.rateMcsIdx;
+ 
+ 	if (rate.nss >= STATS_LLS_MAX_NSS_NUM)
+ 		goto wrong_rate;
+@@ -978,38 +958,38 @@
+ 	}
+ 
+ 	if (rate.preamble == LLS_MODE_OFDM) {
+-		if (rate.rateMcsIdx >= STATS_LLS_OFDM_NUM)
++		if (mcsIdx >= STATS_LLS_OFDM_NUM)
+ 			goto wrong_rate;
+-		prStaRec->u4RxMpduOFDM[0][0][rate.rateMcsIdx]++;
++		prStaRec->u4RxMpduOFDM[0][0][mcsIdx]++;
+ 	} else if (rate.preamble == LLS_MODE_CCK) {
+-		if (rate.rateMcsIdx >= STATS_LLS_CCK_NUM)
++		if (mcsIdx >= STATS_LLS_CCK_NUM)
+ 			goto wrong_rate;
+-		prStaRec->u4RxMpduCCK[0][0][rate.rateMcsIdx]++;
++		prStaRec->u4RxMpduCCK[0][0][mcsIdx]++;
+ 	} else if (rate.preamble == LLS_MODE_HT) {
+ 		if (rate.bw >= STATS_LLS_MAX_HT_BW_NUM ||
+-				rate.rateMcsIdx >= STATS_LLS_HT_NUM)
++				mcsIdx >= STATS_LLS_HT_NUM)
+ 			goto wrong_rate;
+-		prStaRec->u4RxMpduHT[0][rate.bw][rate.rateMcsIdx]++;
++		prStaRec->u4RxMpduHT[0][rate.bw][mcsIdx]++;
+ 	} else if (rate.preamble == LLS_MODE_VHT) {
+ 		if (rate.bw >= STATS_LLS_MAX_VHT_BW_NUM ||
+-				rate.rateMcsIdx >= STATS_LLS_VHT_NUM)
++				mcsIdx >= STATS_LLS_VHT_NUM)
+ 			goto wrong_rate;
+-		prStaRec->u4RxMpduVHT[rate.nss][rate.bw][rate.rateMcsIdx]++;
++		prStaRec->u4RxMpduVHT[rate.nss][rate.bw][mcsIdx]++;
+ 	} else if (rate.preamble == LLS_MODE_HE) {
+ 		if (rate.bw >= STATS_LLS_MAX_HE_BW_NUM ||
+-				rate.rateMcsIdx >= STATS_LLS_HE_NUM)
++				mcsIdx >= STATS_LLS_HE_NUM)
+ 			goto wrong_rate;
+-		prStaRec->u4RxMpduHE[rate.nss][rate.bw][rate.rateMcsIdx]++;
++		prStaRec->u4RxMpduHE[rate.nss][rate.bw][mcsIdx]++;
+ 	}
+ 
+ 	if (prAdapter->rWifiVar.fgLinkStatsDump)
+ 		DBGLOG(RX, INFO, "rate preamble=%u, nss=%u, bw=%u, mcsIdx=%u",
+-			rate.preamble, rate.nss, rate.bw, rate.rateMcsIdx);
++			rate.preamble, rate.nss, rate.bw, mcsIdx);
+ 	return;
+ 
+ wrong_rate:
+ 	DBGLOG(RX, WARN, "Invalid rate preamble=%u, nss=%u, bw=%u, mcsIdx=%u",
+-			rate.preamble, rate.nss, rate.bw, rate.rateMcsIdx);
++			rate.preamble, rate.nss, rate.bw, mcsIdx);
+ #endif
+ }
+ 
+diff --git a/common/dump.c b/common/dump.c
+index 5caab65..db5eab4 100644
+--- a/common/dump.c
++++ b/common/dump.c
+@@ -123,9 +123,9 @@
+ #if !DBG_DISABLE_ALL_LOG
+ #define BUFSIZE 100
+ 	uint8_t output[BUFSIZE] = {0};
+-	uint8_t i = 0;
+-	uint8_t printed = 0;
+-	uint8_t offset = 0;
++	uint32_t i = 0;
++	uint32_t printed = 0;
++	uint32_t offset = 0;
+ 
+ 	ASSERT(pucStartAddr);
+ 	LOG_FUNC("DUMPHEX ADDRESS: %p, Length: %d", pucStartAddr, u2Length);
+diff --git a/common/wlan_lib.c b/common/wlan_lib.c
+index bfdd3e2..60f65d3 100644
+--- a/common/wlan_lib.c
++++ b/common/wlan_lib.c
+@@ -12574,8 +12574,27 @@
+ 	}
+ }
+ 
++/**
++ * wlanQueryRateByTable() - get phy rate by parameters in the unit of 0.1M
++ * @mode: TX_RATE_MODE_CCK (0),
++ *	  TX_RATE_MODE_OFDM (1),
++ *	  TX_RATE_MODE_HTMIX (2), TX_RATE_MODE_HTGF (3),
++ *	  TX_RATE_MODE_VHT (4),
++ *	  TX_RATE_MODE_HE_SU (8), TX_RATE_MODE_HE_ER (9)
++ * @rate: MCS index, [0, ..]
++ * @bw: bandwidth, 0 for 11n, [0, 3] for 11ac, 11ax for 20, 40, 80, 160
++ * @gi: GI, [0, 1] for 11n, 11ac, 1 as short GI
++ *	    [0, 2] for 11ax, 0 as shortest, 2 as longest
++ * @nsts: NSTS, [1, 3]
++ * @pu4CurRate: returning current phy rate by given parameters
++ * @pu4MaxRate: returning max phy rate (max MCS)
++ *
++ * Return:
++ *	0: Success
++ *	-1: Failure
++ */
+ int wlanQueryRateByTable(uint32_t txmode, uint32_t rate,
+-			uint32_t frmode, uint32_t sgi, uint32_t nsts,
++			uint32_t frmode, uint32_t gi, uint32_t nsts,
+ 			uint32_t *pu4CurRate, uint32_t *pu4MaxRate)
+ {
+ 	uint32_t u4CurRate = 0, u4MaxRate = 0;
+@@ -12601,9 +12620,9 @@
+ 		}
+ 		u4MaxRate = g_rOfdmDataRateMappingTable
+ 			.rate[MCS_IDX_MAX_RATE_OFDM];
+-	} else if ((txmode == TX_RATE_MODE_HTMIX) ||
+-		   (txmode == TX_RATE_MODE_HTGF)) { /* 11N */
+-		if ((nsts == 0) || (nsts >= 4)) {
++	} else if (txmode == TX_RATE_MODE_HTMIX ||
++		   txmode == TX_RATE_MODE_HTGF) { /* 11N */
++		if (nsts == 0 || nsts >= 4) {
+ 			DBGLOG(SW4, ERROR, "nsts error: %u\n", nsts);
+ 			return -1;
+ 		}
+@@ -12623,11 +12642,11 @@
+ 			return -1;
+ 		}
+ 		u4CurRate = g_rDataRateMappingTable.nsts[nsts - 1].bw[frmode]
+-				.sgi[sgi].rate[rate];
++				.sgi[gi].rate[rate];
+ 		u4MaxRate = g_rDataRateMappingTable.nsts[nsts - 1].bw[frmode]
+-				.sgi[sgi].rate[MCS_IDX_MAX_RATE_HT];
++				.sgi[gi].rate[MCS_IDX_MAX_RATE_HT];
+ 	} else if (txmode == TX_RATE_MODE_VHT) { /* 11AC */
+-		if ((nsts == 0) || (nsts >= 4)) {
++		if (nsts == 0 || nsts >= 4) {
+ 			DBGLOG(SW4, ERROR, "nsts error: %u\n", nsts);
+ 			return -1;
+ 		}
+@@ -12640,7 +12659,7 @@
+ 		}
+ 
+ 		ucMaxSize = ARRAY_SIZE(g_rDataRateMappingTable.nsts[nsts - 1]
+-				.bw[frmode].sgi[sgi].rate);
++				.bw[frmode].sgi[gi].rate);
+ 		if (rate >= ucMaxSize) {
+ 			DBGLOG(SW4, ERROR, "rate error for 11AC: %u\n",
+ 			       rate);
+@@ -12648,11 +12667,12 @@
+ 		}
+ 
+ 		u4CurRate = g_rDataRateMappingTable.nsts[nsts - 1]
+-				.bw[frmode].sgi[sgi].rate[rate];
++				.bw[frmode].sgi[gi].rate[rate];
+ 		u4MaxRate = g_rDataRateMappingTable.nsts[nsts - 1].bw[frmode]
+-				.sgi[sgi].rate[MCS_IDX_MAX_RATE_VHT];
+-	} else if ((txmode == TX_RATE_MODE_HE_SU) ||
+-		(txmode == TX_RATE_MODE_HE_ER)) { /* AX */
++				.sgi[gi].rate[MCS_IDX_MAX_RATE_VHT];
++	} else if (txmode == TX_RATE_MODE_HE_SU ||
++		   txmode == TX_RATE_MODE_HE_ER ||
++		   txmode == TX_RATE_MODE_HE_MU) { /* AX */
+ 		uint8_t dcm = 0, ru106 = 0;
+ 
+ 		if ((nsts == 0) || (nsts >= 5)) {
+@@ -12672,7 +12692,7 @@
+ 		rate = rate & BITS(0, 3);
+ 
+ 		ucMaxSize = ARRAY_SIZE(g_rAxDataRateMappingTable.nsts[nsts - 1]
+-				.bw[frmode].gi[sgi].rate);
++				.bw[frmode].gi[gi].rate);
+ 		if (rate >= ucMaxSize) {
+ 			DBGLOG(SW4, ERROR, "rate error for 11AX: %u\n",
+ 			       rate);
+@@ -12680,9 +12700,9 @@
+ 		}
+ 
+ 		u4CurRate = g_rAxDataRateMappingTable.nsts[nsts - 1]
+-				.bw[frmode].gi[sgi].rate[rate];
++				.bw[frmode].gi[gi].rate[rate];
+ 		u4MaxRate = g_rAxDataRateMappingTable.nsts[nsts - 1]
+-				.bw[frmode].gi[sgi].rate[MCS_IDX_MAX_RATE_HE];
++				.bw[frmode].gi[gi].rate[MCS_IDX_MAX_RATE_HE];
+ 
+ 		if (dcm != 0 || ru106 != 0) {
+ 			u4CurRate = u4CurRate >> 1;
+@@ -12691,7 +12711,7 @@
+ 	} else {
+ 		DBGLOG(SW4, ERROR,
+ 			"Unknown rate for [%d,%d,%d,%d,%d]\n",
+-			txmode, nsts, frmode, sgi, rate);
++			txmode, nsts, frmode, gi, rate);
+ 		return -1;
+ 	}
+ 
+@@ -12846,52 +12866,40 @@
+ }
+ #endif /* CFG_REPORT_MAX_TX_RATE */
+ 
+-#ifdef CFG_SUPPORT_LINK_QUALITY_MONITOR
+-int wlanGetRxRate(IN struct GLUE_INFO *prGlueInfo, IN uint8_t ucBssIdx,
++/**
++ * wlanGetRxRate - Get RX rate from information in RXV
++ */
++static int wlanGetRxRate(IN struct GLUE_INFO *prGlueInfo, uint32_t *prRxV,
+ 		OUT uint32_t *pu4CurRate, OUT uint32_t *pu4MaxRate,
+-		OUT struct RateInfo *prRateInfo)
++		OUT struct RxRateInfo *prRxRateInfo)
+ {
+ 	struct ADAPTER *prAdapter;
+-	uint32_t rxmode = 0, rate = 0, frmode = 0, sgi = 0, nss = 0;
+-	int rv;
++	struct RxRateInfo rRxRateInfo = {0};
++	int32_t rv;
+ 	struct CHIP_DBG_OPS *prChipDbg;
+ 
+ 	if (pu4CurRate)
+ 		*pu4CurRate = 0;
+ 	if (pu4MaxRate)
+ 		*pu4MaxRate = 0;
+-	if (prRateInfo)
+-		*prRateInfo = (const struct RateInfo){0};
++	if (prRxRateInfo)
++		*prRxRateInfo = (const struct RxRateInfo){0};
+ 	prAdapter = prGlueInfo->prAdapter;
+ 
+-	if (!IS_BSS_INDEX_AIS(prAdapter, ucBssIdx))
+-		return -1;
+-
+ 	prChipDbg = prAdapter->chip_info->prDebugOps;
+ 	if (prChipDbg && prChipDbg->get_rx_rate_info) {
+-		rv = prChipDbg->get_rx_rate_info(
+-				prAdapter,
+-				ucBssIdx,
+-				&rate,
+-				&nss,
+-				&rxmode,
+-				&frmode,
+-				&sgi);
++		rv = prChipDbg->get_rx_rate_info(prRxV, &rRxRateInfo);
+ 
+ 		if (rv < 0)
+ 			goto errhandle;
+ 	}
+ 
+-	if (prRateInfo) {
+-		prRateInfo->u4Mode = rxmode;
+-		prRateInfo->u4Nss = nss;
+-		prRateInfo->u4Bw = frmode;
+-		prRateInfo->u4Gi = sgi;
+-		prRateInfo->u4Rate = rate;
+-	}
++	if (prRxRateInfo)
++		*prRxRateInfo = rRxRateInfo;
+ 
+-	rv = wlanQueryRateByTable(rxmode, rate, frmode, sgi, nss,
+-				 pu4CurRate, pu4MaxRate);
++	rv = wlanQueryRateByTable(rRxRateInfo.u4Mode, rRxRateInfo.u4Rate,
++				rRxRateInfo.u4Bw, rRxRateInfo.u4Gi,
++				rRxRateInfo.u4Nss, pu4CurRate, pu4MaxRate);
+ 	if (rv < 0)
+ 		goto errhandle;
+ 
+@@ -12900,11 +12908,81 @@
+ errhandle:
+ 	DBGLOG(SW4, TRACE,
+ 		"rxmode=[%u], rate=[%u], frmode=[%u], sgi=[%u], nss=[%u]\n",
+-		rxmode, rate, frmode, sgi, nss
+-	);
++		rRxRateInfo.u4Mode, rRxRateInfo.u4Rate, rRxRateInfo.u4Bw,
++		rRxRateInfo.u4Gi, rRxRateInfo.u4Nss);
+ 	return -1;
+ }
+ 
++/**
++ * wlanGetRxRateByBssid() - Get the RX rate in last cached RXV data
++ *			    (unit: 0.1Mbps).
++ * @prGlueInfo: Pointer to GLUE info
++ * @ucBssIdx: BSS index to query by parsing RX rate from RXV saved in SatRec.
++ * @pu4CurRate: Returning current rate for given RX rate parameters if non-NULL
++ *              pointer is passed-in
++ * @pu4MaxRate: Returning max supported rate for given RX parameters with max
++ *              MCS index if non-NULL pointer is passed-in
++ * @prRxRateInfo: Pointer to structure returning RxRateInfo.
++ *		If caller want to get RxRateInfo parameters, call with a valid
++ *		pointer to returning structure.
++ *		  u4Mode: Returning RX mode
++ *		  u4Nss: Returning NSS [1..]
++ *		  u4Bw: Returning bandwidth
++ *		  u4Gi: Returning guard interval
++ *		  u4Rate: Returning MCS index
++ *		Check wlanQueryRateByTable() for returning values.
++ *
++ * This function gets RX rate from the last cached RX rate from RXV saved in
++ *     prAdapter->arStaRec[i].u4RxV[*].
++ *     The u4RxV were saved earlier on calling
++ *     asicConnac2xRxProcessRxvforMSP() in nicRxIndicatePackets() or on calling
++ *     nicRxProcessRxReport() on receiving RX_PKT_TYPE_RX_REPORT.
++ *
++ *     The two functions filling u4RxV are mutual exclusive.
++ *     In the chip supporting getting the rate from RX report,
++ *     CONNAC2X_RXV_FROM_RX_RPT(prAdapter) returns TRUE, the values will not be
++ *     filled in asicConnac2xRxProcessRxvforMSP().
++ *
++ * Return:0 on success, -1 on failure.
++ *	The caller shall pass valid pointers in the arguments of interested
++ *	results.
++ */
++int wlanGetRxRateByBssid(IN struct GLUE_INFO *prGlueInfo, IN uint8_t ucBssIdx,
++		OUT uint32_t *pu4CurRate, OUT uint32_t *pu4MaxRate,
++		OUT struct RxRateInfo *prRxRateInfo)
++{
++	struct ADAPTER *prAdapter;
++	struct STA_RECORD *prStaRec;
++	uint32_t *prRxV = NULL; /* pointer to stored RxV */
++	uint8_t ucWlanIdx;
++	uint8_t ucStaIdx;
++
++	prAdapter = prGlueInfo->prAdapter;
++
++	if (!IS_BSS_INDEX_AIS(prAdapter, ucBssIdx))
++		return -1;
++
++	prStaRec = aisGetStaRecOfAP(prAdapter, ucBssIdx);
++	if (prStaRec) {
++		ucWlanIdx = prStaRec->ucWlanIndex;
++	} else {
++		DBGLOG(SW4, ERROR, "prStaRecOfAP is null\n");
++		return -1;
++	}
++
++	if (wlanGetStaIdxByWlanIdx(prAdapter, ucWlanIdx, &ucStaIdx) ==
++		WLAN_STATUS_SUCCESS) {
++		prRxV = prAdapter->arStaRec[ucStaIdx].au4RxV;
++	} else {
++		DBGLOG(SW4, ERROR, "wlanGetStaIdxByWlanIdx fail\n");
++		return -1;
++	}
++
++	return wlanGetRxRate(prGlueInfo, prRxV,
++			pu4CurRate, pu4MaxRate, prRxRateInfo);
++}
++
++#ifdef CFG_SUPPORT_LINK_QUALITY_MONITOR
+ uint32_t wlanLinkQualityMonitor(struct GLUE_INFO *prGlueInfo, bool bFgIsOid)
+ {
+ 	struct ADAPTER *prAdapter;
+@@ -13039,7 +13117,8 @@
+ 			prLinkQualityInfo->u8LastIdleSlotCount;
+ 
+ 	/* get current rx rate */
+-	if (wlanGetRxRate(prGlueInfo, AIS_DEFAULT_INDEX,
++	if (wlanGetRxRateByBssid(prGlueInfo,
++			AIS_DEFAULT_INDEX,
+ 			&u4CurRxRate, &u4MaxRxRate, NULL) < 0)
+ 		prLinkQualityInfo->u4CurRxRate = 0;
+ 	else
+diff --git a/include/chips/cmm_asic_connac2x.h b/include/chips/cmm_asic_connac2x.h
+index 9db5956..4003765 100644
+--- a/include/chips/cmm_asic_connac2x.h
++++ b/include/chips/cmm_asic_connac2x.h
+@@ -319,13 +319,6 @@
+ 	((_key_loc & 0x7F) << 6) | (_DW & 0xF) << 2)
+ 
+ /*------------------------------------------------------------------------------
+- * MACRO for decision of RXV source (RXD or RX_RPT)
+- *------------------------------------------------------------------------------
+- */
+-#define CONNAC2X_RXV_FROM_RX_RPT(_prAdapter)	\
+-	((_prAdapter)->chip_info->get_rxv_from_rxrpt)
+-
+-/*------------------------------------------------------------------------------
+  * MACRO for CONNAC2X RXVECTOR Parsing
+  *------------------------------------------------------------------------------
+  */
+@@ -335,6 +328,20 @@
+ #define CONNAC2X_RX_VT_NSTS_MASK            BITS(7, 9)
+ #define CONNAC2X_RX_VT_NSTS_OFFSET          7
+ #define CONNAC2X_RX_VT_LDPC                 BIT(11)
++#define CONNAC2X_RX_VT_MU		    BIT(21)
++
++/* P-RXVector, 1st Cycle, Modified */
++#define CONNAC2X_RX_VT_FR_MODE_MASK_V2		BITS(12, 14)
++#define CONNAC2X_RX_VT_FR_MODE_OFFSET_V2	12
++#define CONNAC2X_RX_VT_SHORT_GI_MASK_V2		BITS(15, 16)
++#define CONNAC2X_RX_VT_SHORT_GI_OFFSET_V2	15
++#define CONNAC2X_RX_VT_DCM			BIT(17)
++#define CONNAC2X_RX_VT_NUM_RX_MASK_V2		BITS(18, 20)
++#define CONNAC2X_RX_VT_NUM_RX_OFFSET_V2		18
++#define CONNAC2X_RX_VT_STBC_MASK_V2		BITS(22, 23)
++#define CONNAC2X_RX_VT_STBC_OFFSET_V2		22
++#define CONNAC2X_RX_VT_RX_MODE_MASK_V2		BITS(24, 27)
++#define CONNAC2X_RX_VT_RX_MODE_OFFSET_V2	24
+ 
+ /* C-RXC Vector, 1st Cycle */
+ #define CONNAC2X_RX_VT_STBC_MASK            BITS(0, 1)
+@@ -377,6 +384,25 @@
+ 	(((_RxvDw2) & CONNAC2X_RX_VT_NUM_RX_MASK) >>	\
+ 	CONNAC2X_RX_VT_NUM_RX_OFFSET)
+ 
++#define CONNAC2X_HAL_RX_VECTOR_GET_RCPI0_V2(_prHwRxVector) \
++	((((_prHwRxVector)->u4RxVector[1]) & CONNAC2X_RX_VT_RCPI0_MASK) >> \
++	CONNAC2X_RX_VT_RCPI0_OFFSET)
++
++#define CONNAC2X_HAL_RX_VECTOR_GET_RCPI1_V2(_prHwRxVector) \
++	((((_prHwRxVector)->u4RxVector[1]) & CONNAC2X_RX_VT_RCPI1_MASK) >> \
++	CONNAC2X_RX_VT_RCPI1_OFFSET)
++
++#define CONNAC2X_HAL_RX_VECTOR_GET_RCPI2_V2(_prHwRxVector) \
++	((((_prHwRxVector)->u4RxVector[1]) & CONNAC2X_RX_VT_RCPI2_MASK) >> \
++	CONNAC2X_RX_VT_RCPI2_OFFSET)
++
++#define CONNAC2X_HAL_RX_VECTOR_GET_RCPI3_V2(_prHwRxVector) \
++	((((_prHwRxVector)->u4RxVector[1]) & CONNAC2X_RX_VT_RCPI3_MASK) >> \
++	CONNAC2X_RX_VT_RCPI3_OFFSET)
++
++#define CONNAC2X_HAL_RX_VECTOR_GET_NUM_RX_V2(_prHwRxVector) \
++	((((_prHwRxVector)->u4RxVector[0]) & CONNAC2X_RX_VT_NUM_RX_MASK_V2) >> \
++	CONNAC2X_RX_VT_NUM_RX_OFFSET_V2)
+ 
+ #if defined(_HIF_PCIE) || defined(_HIF_AXI)
+ #define HAL_IS_CONNAC2X_EXT_TX_DONE_INTR(u4IntrStatus, __u4IntrBits) \
+diff --git a/include/chips/soc5_0.h b/include/chips/soc5_0.h
+index 9fc9dd0..72ba11e 100644
+--- a/include/chips/soc5_0.h
++++ b/include/chips/soc5_0.h
+@@ -207,16 +207,13 @@
+ void soc5_0_dump_mac_info(
+ 	IN struct ADAPTER *prAdapter);
+ #ifdef CFG_SUPPORT_LINK_QUALITY_MONITOR
+-int soc5_0_get_rx_rate_info(IN struct ADAPTER *prAdapter,
+-		IN uint8_t ucBssIdx,
+-		OUT uint32_t *pu4Rate, OUT uint32_t *pu4Nss,
+-		OUT uint32_t *pu4RxMode, OUT uint32_t *pu4FrMode,
+-		OUT uint32_t *pu4Sgi);
++int soc5_0_get_rx_rate_info(IN const uint32_t *prRxV,
++		OUT struct RxRateInfo *prRxRateInfo);
+ #endif
+ 
+ #if CFG_SUPPORT_LLS
+ void soc5_0_get_rx_link_stats(IN struct ADAPTER *prAdapter,
+-	IN struct SW_RFB *prRetSwRfb, IN uint32_t u4RxVector0);
++	IN struct SW_RFB *prRetSwRfb, IN uint32_t *pu4RxV);
+ #endif
+ 
+ extern void kalConstructDefaultFirmwarePrio(
+diff --git a/include/chips/soc7_0.h b/include/chips/soc7_0.h
+index e7ccab8..5d6756e 100644
+--- a/include/chips/soc7_0.h
++++ b/include/chips/soc7_0.h
+@@ -181,16 +181,13 @@
+ 	IN enum _ENUM_WFDMA_TYPE_T enum_wfdma_type);
+ int soc7_0_Trigger_fw_assert(void);
+ #ifdef CFG_SUPPORT_LINK_QUALITY_MONITOR
+-int soc7_0_get_rx_rate_info(IN struct ADAPTER *prAdapter,
+-		IN uint8_t ucBssIdx,
+-		OUT uint32_t *pu4Rate, OUT uint32_t *pu4Nss,
+-		OUT uint32_t *pu4RxMode, OUT uint32_t *pu4FrMode,
+-		OUT uint32_t *pu4Sgi);
++int soc7_0_get_rx_rate_info(IN const uint32_t *prRxV,
++		OUT struct RxRateInfo *prRxRateInfo);
+ #endif
+ 
+ #if CFG_SUPPORT_LLS
+ void soc7_0_get_rx_link_stats(IN struct ADAPTER *prAdapter,
+-	IN struct SW_RFB *prRetSwRfb, IN uint32_t u4RxVector0);
++	IN struct SW_RFB *prRetSwRfb, IN uint32_t *pu4RxV);
+ #endif
+ 
+ #if (CFG_POWER_ON_DOWNLOAD_EMI_ROM_PATCH == 1)
+diff --git a/include/config.h b/include/config.h
+index e2a59da..73cd7d4 100644
+--- a/include/config.h
++++ b/include/config.h
+@@ -1098,6 +1098,11 @@
+ 
+ #define CFG_SUPPORT_LLS 1
+ 
++/* Before (including) Android T, use single interface report structure */
++#ifndef AOSP_LLS_V1_SINGLE_INTERFACE
++#define AOSP_LLS_V1_SINGLE_INTERFACE 1
++#endif
++
+ /*------------------------------------------------------------------------------
+  * Flags for prepare the FW compile flag
+  *------------------------------------------------------------------------------
+diff --git a/include/debug.h b/include/debug.h
+index bc2d5a9..897169c 100644
+--- a/include/debug.h
++++ b/include/debug.h
+@@ -530,13 +530,8 @@
+ 		IN enum _ENUM_WFDMA_TYPE_T enum_wfdma_type);
+ #ifdef CFG_SUPPORT_LINK_QUALITY_MONITOR
+ 	int (*get_rx_rate_info)(
+-		struct ADAPTER *prAdapter,
+-		uint8_t ucBssIdx,
+-		uint32_t *pu4Rate,
+-		uint32_t *pu4Nss,
+-		uint32_t *pu4RxMode,
+-		uint32_t *pu4FrMode,
+-		uint32_t *pu4Sgi);
++		IN const uint32_t *prRxV,
++		struct RxRateInfo *prRxRateInfo);
+ #endif
+ #endif
+ 
+@@ -544,7 +539,7 @@
+ 	void (*get_rx_link_stats)(
+ 		IN struct ADAPTER *prAdapter,
+ 		IN struct SW_RFB *prRetSwRfb,
+-		IN uint32_t u4RxVector0);
++		IN uint32_t *pu4RxV);
+ #endif
+ };
+ 
+@@ -913,13 +908,8 @@
+ 			struct PARAM_GET_STA_STATISTICS *prQueryStaStatistics,
+ 			u_int8_t fgResetCnt, uint32_t u4StatGroup);
+ #ifdef CFG_SUPPORT_LINK_QUALITY_MONITOR
+-int connac_get_rx_rate_info(struct ADAPTER *prAdapter,
+-	uint8_t ucBssIdx,
+-	uint32_t *pu4Rate,
+-	uint32_t *pu4Nss,
+-	uint32_t *pu4RxMode,
+-	uint32_t *pu4FrMode,
+-	uint32_t *pu4Sgi);
++int connac_get_rx_rate_info(const uint32_t *prRxV,
++		struct RxRateInfo *prRxRateInfo);
+ #endif
+ 
+ #if (CFG_SUPPORT_CONNAC2X == 1)
+@@ -1004,13 +994,8 @@
+ 	uint32_t cr_start, uint32_t word_count, char *str);
+ #ifdef CFG_SUPPORT_LINK_QUALITY_MONITOR
+ int connac2x_get_rx_rate_info(
+-	struct ADAPTER *prAdapter,
+-	uint8_t ucBssIdx,
+-	uint32_t *pu4Rate,
+-	uint32_t *pu4Nss,
+-	uint32_t *pu4RxMode,
+-	uint32_t *pu4FrMode,
+-	uint32_t *pu4Sgi);
++	const uint32_t *prRxV,
++	struct RxRateInfo *prRxRateInfo);
+ #endif
+ 
+ #endif /* CFG_SUPPORT_CONNAC2X == 1 */
+diff --git a/include/mgmt/cnm_mem.h b/include/mgmt/cnm_mem.h
+index 34f03b1..529450d 100644
+--- a/include/mgmt/cnm_mem.h
++++ b/include/mgmt/cnm_mem.h
+@@ -728,11 +728,7 @@
+ 	struct TXBF_PFMU_STA_INFO rTxBfPfmuStaInfo;
+ #endif
+ #if CFG_SUPPORT_MSP
+-	uint32_t u4RxVector0;
+-	uint32_t u4RxVector1;
+-	uint32_t u4RxVector2;
+-	uint32_t u4RxVector3;
+-	uint32_t u4RxVector4;
++	uint32_t au4RxV[RXV_NUM];
+ #endif
+ 	uint8_t ucSmDialogToken;	/* Spectrum Mngt Dialog Token */
+ 	uint8_t ucSmMsmtRequestMode;	/* Measurement Request Mode */
+@@ -815,6 +811,8 @@
+ 			[STATS_LLS_MAX_VHT_BW_NUM][STATS_LLS_VHT_NUM];
+ 		uint32_t u4RxMpduHE[STATS_LLS_MAX_NSS_NUM]
+ 			[STATS_LLS_MAX_HE_BW_NUM][STATS_LLS_HE_NUM];
++		uint32_t u4RxMpduEHT[STATS_LLS_MAX_NSS_NUM]
++			[STATS_LLS_MAX_EHT_BW_NUM][STATS_LLS_EHT_NUM];
+ 	};
+ #endif
+ 
+diff --git a/include/mgmt/scan.h b/include/mgmt/scan.h
+index 98f05d4..1331608 100644
+--- a/include/mgmt/scan.h
++++ b/include/mgmt/scan.h
+@@ -281,6 +281,15 @@
+ 	LOG_SCAN_MAX
+ };
+ 
++/* IEEE Std 802.11 2020 Table 9-283 */
++enum ESP_TRAFFIC_AC {
++	ESP_AC_BK = 0,
++	ESP_AC_BE = 1,
++	ESP_AC_VI = 2,
++	ESP_AC_VO = 3,
++	ESP_AC_NUM = 4,
++};
++
+ /*----------------------------------------------------------------------------*/
+ /* BSS Descriptors                                                            */
+ /*----------------------------------------------------------------------------*/
+@@ -487,7 +496,7 @@
+ #if CFG_SUPPORT_MBO
+ 	uint8_t fgIsDisallowed;
+ 	uint8_t fgExistEspIE;
+-	uint32_t u4EspInfo[WIFI_AC_MAX];
++	uint32_t u4EspInfo[ESP_AC_NUM];
+ #endif
+ 	uint16_t u2StaCnt;
+ 	uint16_t u2AvaliableAC; /* Available Admission Capacity */
+diff --git a/include/nic/adapter.h b/include/nic/adapter.h
+index 01f1804..dd1e965 100644
+--- a/include/nic/adapter.h
++++ b/include/nic/adapter.h
+@@ -673,6 +673,11 @@
+ #if CFG_TC10_FEATURE
+ 	u_int8_t aisConnectedBandwidth;
+ #endif
++
++
++#if CFG_SUPPORT_LLS
++	uint32_t u4RxMpduAc[STATS_LLS_WIFI_AC_MAX];
++#endif
+ };
+ 
+ /* Support AP Selection */
+@@ -1906,9 +1911,15 @@
+ 	u_int8_t fgIsStatValid;
+ 
+ #if CFG_SUPPORT_LLS
+-	struct HAL_LLS_FULL_REPORT rLinkStatsDestBuffer;
+-	struct HAL_LLS_FULL_REPORT *pucLinkStatsSrcBufferAddr;
+-	uint32_t u4RxMpduAc[STATS_LLS_WIFI_AC_MAX]; /* Store in LLS order */
++	uint8_t ucLinkStatsBssNum;
++	union {
++		struct HAL_LLS_FULL_REPORT rLinkStatsDestBuffer_v1;
++		struct HAL_LLS_FULL_REPORT_V2 rLinkStatsDestBuffer_v2;
++	} rLinkStatsDestBuffer;
++	struct HAL_LLS_FW_REPORT *pucLinkStatsSrcBufferAddr;
++	/* Store in LLS order */
++	uint32_t *pu4TxTimePerLevels;
++	uint32_t u4TxTimePerLevelsSize; /* 256 * 4bytes (uint32_t) * 2 bands */
+ 	struct STATS_LLS_PEER_AP_REC rPeerApRec[KAL_AIS_NUM];
+ #endif
+ 
+diff --git a/include/nic/mt66xx_reg.h b/include/nic/mt66xx_reg.h
+index 0721c50..f296a3b 100644
+--- a/include/nic/mt66xx_reg.h
++++ b/include/nic/mt66xx_reg.h
+@@ -1380,7 +1380,6 @@
+ 	u_int8_t is_support_asic_lp;
+ 	u_int8_t is_support_wfdma1;
+ 	u_int8_t is_support_dma_shdl;
+-	u_int8_t get_rxv_from_rxrpt;
+ 	u_int8_t rx_event_port;
+ #if CFG_SUPPORT_LLS
+ 	const u_int8_t is_supported_full_lls;
+diff --git a/include/nic/nic_rx.h b/include/nic/nic_rx.h
+index 473d77d..8090cc3 100644
+--- a/include/nic/nic_rx.h
++++ b/include/nic/nic_rx.h
+@@ -529,6 +529,8 @@
+ 
+ #define NIC_RX_ROOM_SIZE (32 + 32)
+ 
++#define RXV_NUM (5)
++
+ /*******************************************************************************
+  *                             D A T A   T Y P E S
+  *******************************************************************************
+@@ -582,6 +584,7 @@
+ 	RX_BAR_DELAY_COUNT,
+ #endif /* CFG_SUPPORT_BAR_DELAY_INDICATION */
+ 	RX_AP_ISO_DROP_COUNT,
++	RX_NULL_PACKET_COUNT,
+ 	RX_STATISTIC_COUNTER_NUM
+ };
+ 
+@@ -1582,4 +1585,10 @@
+ int32_t nicRxGetLastRxRssi(struct ADAPTER *prAdapter, IN char *pcCommand,
+ 			IN int i4TotalLen, IN uint8_t ucWlanIdx);
+ 
++void nicRxProcessRxv(IN struct ADAPTER *prAdapter,
++		IN struct SW_RFB *prSwRfb);
++
++void nicRxProcessRxvLinkStats(IN struct ADAPTER *prAdapter,
++	IN struct SW_RFB *prRetSwRfb, uint32_t *pu4RxV);
++
+ #endif /* _NIC_RX_H */
+diff --git a/include/nic_cmd_event.h b/include/nic_cmd_event.h
+index 51bb18f..8e040ee 100644
+--- a/include/nic_cmd_event.h
++++ b/include/nic_cmd_event.h
+@@ -1187,14 +1187,18 @@
+  * EMI shared memory and the offset of key structure fields.
+  *
+  * @u4DataEmiOffset: pointer to shared EMI memory, in the structure of
+- *                   HAL_LLS_FULL_REPORT
++ *                   HAL_LLS_FW_REPORT
+  * @u4OffsetInfo: info in STATS_LLS_WIFI_IFACE_STAT
+  * @u4OffsetAc: ac in STATS_LLS_WIFI_IFACE_STAT
+- * @u4OffsetPeerInfo: peer_info in HAL_LLS_FULL_REPORT
+- * @u4OffsetRadioStat: radio in HAL_LLS_FULL_REPORT
++ * @u4OffsetPeerInfo: peer_info in HAL_LLS_FW_REPORT
++ * @u4OffsetRadioStat: radio in HAL_LLS_FW_REPORT
+  * @u4OffsetTxTimerPerLevels: tx_time_per_levels in STATS_LLS_WIFI_RADIO_STAT
+  * @u4OffsetRxTime: rx_time in STATS_LLS_WIFI_RADIO_STAT
+  * @u4OffsetChannel: channel in WIFI_RADIO_CHANNEL_STAT
++ *
++ * @u4TxTimePerLevelEmiOffset: pointer to shared EMI memory, as array of
++ *                             uint32_t of u4NumTxPowerLevels entries
++ * @u4NumTxPowerLevels: the size of buffer pointed by u4TxTimePerLevelEmiOffset
+  */
+ struct CAP_LLS_DATA_EMI_OFFSET {
+ 	uint32_t u4DataEmiOffset;
+@@ -1205,6 +1209,9 @@
+ 	uint32_t u4OffsetTxTimerPerLevels;
+ 	uint32_t u4OffsetRxTime;
+ 	uint32_t u4OffsetChannel;
++
++	uint32_t u4TxTimePerLevelEmiOffset;
++	uint32_t u4NumTxPowerLevels;
+ };
+ 
+ 
+diff --git a/include/wlan_lib.h b/include/wlan_lib.h
+index 2769d81..84b0dbe 100644
+--- a/include/wlan_lib.h
++++ b/include/wlan_lib.h
+@@ -1294,7 +1294,7 @@
+ 	uint32_t u4RxOk[MAX_BSSID_NUM];	/* By BSSIDX */
+ };
+ 
+-struct RateInfo {
++struct RxRateInfo {
+ 	uint32_t u4Mode;
+ 	uint32_t u4Nss;
+ 	uint32_t u4Bw;
+@@ -1879,10 +1879,10 @@
+ 		 OUT uint32_t *pu4CurRate, OUT uint32_t *pu4MaxRate);
+ #endif /* CFG_REPORT_MAX_TX_RATE */
+ 
+-#ifdef CFG_SUPPORT_LINK_QUALITY_MONITOR
+-int wlanGetRxRate(IN struct GLUE_INFO *prGlueInfo, IN uint8_t ucBssIdx,
++int wlanGetRxRateByBssid(IN struct GLUE_INFO *prGlueInfo, IN uint8_t ucBssIdx,
+ 		OUT uint32_t *pu4CurRate, OUT uint32_t *pu4MaxRate,
+-		OUT struct RateInfo *prRateInfo);
++		OUT struct RxRateInfo *prRxRateInfo);
++#ifdef CFG_SUPPORT_LINK_QUALITY_MONITOR
+ uint32_t wlanLinkQualityMonitor(struct GLUE_INFO *prGlueInfo, bool bFgIsOid);
+ void wlanFinishCollectingLinkQuality(struct GLUE_INFO *prGlueInfo);
+ #endif /* CFG_SUPPORT_LINK_QUALITY_MONITOR */
+diff --git a/mgmt/ais_fsm.c b/mgmt/ais_fsm.c
+index 0f15141..774421a 100644
+--- a/mgmt/ais_fsm.c
++++ b/mgmt/ais_fsm.c
+@@ -282,7 +282,13 @@
+ 
+ 	prConnSettings->ucBTMEnableMode = 0;
+ 
+-#if CFG_SUPPORT_802_11AC
++#if (CFG_SUPPORT_802_11BE == 1)
++	prAdapter->rWifiVar.eDesiredPhyConfig
++		= PHY_CONFIG_802_11ABGNACAXBE;
++#elif (CFG_SUPPORT_802_11AX == 1)
++	prAdapter->rWifiVar.eDesiredPhyConfig
++		= PHY_CONFIG_802_11ABGNACAX;
++#elif CFG_SUPPORT_802_11AC
+ 	prAdapter->rWifiVar.eDesiredPhyConfig
+ 		= PHY_CONFIG_802_11ABGNAC;
+ #else
+@@ -291,15 +297,12 @@
+ #endif
+ 
+ #if (CFG_SUPPORT_802_11AX == 1)
+-	if (fgEfuseCtrlAxOn == 1) {
+-		prAdapter->rWifiVar.eDesiredPhyConfig
+-			= PHY_CONFIG_802_11ABGNACAX;
+-	}
++	if (fgEfuseCtrlAxOn == 0)
++		prAdapter->rWifiVar.eDesiredPhyConfig = PHY_CONFIG_802_11ABGNAC;
+ #endif
+-#if (CFG_SUPPORT_802_11BE == 1)
+-	prAdapter->rWifiVar.eDesiredPhyConfig
+-		= PHY_CONFIG_802_11ABGNACAXBE;
+-#endif
++
++	if (prAdapter->rWifiVar.ucHwNotSupportAC)
++		prAdapter->rWifiVar.eDesiredPhyConfig = PHY_CONFIG_802_11ABGN;
+ 
+ 	/* Set default bandwidth modes */
+ 	prAdapter->rWifiVar.uc2G4BandwidthMode =
+diff --git a/mgmt/ap_selection.c b/mgmt/ap_selection.c
+index 8a4acd2..023105a 100644
+--- a/mgmt/ap_selection.c
++++ b/mgmt/ap_selection.c
+@@ -1170,7 +1170,7 @@
+ 
+ #if CFG_SUPPORT_MBO
+ 	if (prBssDesc->fgExistEspIE)
+-		u2Score = (prBssDesc->u4EspInfo[WIFI_AC_BE] >> 8) & 0xff;
++		u2Score = (prBssDesc->u4EspInfo[ESP_AC_BE] >> 8) & 0xff;
+ #endif
+ 	return u2Score * gasMtkWeightConfig[eRoamType].ucTputWeight;
+ }
+@@ -1644,7 +1644,7 @@
+ 	u2AMsduByte = apSelectionGetAmsduByte(prBssDesc);
+ 
+ 	if (prBssDesc->fgExistEspIE) {
+-		pucIEs = (uint8_t *) &prBssDesc->u4EspInfo[WIFI_AC_BE];
++		pucIEs = (uint8_t *) &prBssDesc->u4EspInfo[ESP_AC_BE];
+ 
+ 		ucIEBaSize = (uint8_t)((pucIEs[1] & 0xE0) >> 5);
+ 		if (ucIEBaSize < sizeof(aucBaSizeTranslate))
+diff --git a/mgmt/scan.c b/mgmt/scan.c
+index 0249af4..5d0adff 100644
+--- a/mgmt/scan.c
++++ b/mgmt/scan.c
+@@ -2915,7 +2915,7 @@
+ 					uint8_t *info = infoList + i * 3;
+ 					uint8_t ac = (*info) & 0x3;
+ 
+-					if (ac < WIFI_AC_MAX)
++					if (ac < ESP_AC_NUM)
+ 						WLAN_GET_FIELD_24(info,
+ 						    &prBssDesc->u4EspInfo[ac]);
+ 				}
+diff --git a/nan/nan_data_engine.c b/nan/nan_data_engine.c
+index ae3d644..aae2828 100644
+--- a/nan/nan_data_engine.c
++++ b/nan/nan_data_engine.c
+@@ -6917,7 +6917,7 @@
+ 		uint8_t *pcuEvtBuf) {
+ 	struct _NAN_SCHED_EVENT_NDL_DISCONN_T *prNDLDisconn = (struct _NAN_SCHED_EVENT_NDL_DISCONN_T *)pcuEvtBuf;
+ 
+-#if (CFG_SUPPORT_CONNAC3X == 1)
++#if (defined CFG_SUPPORT_CONNAC3X && CFG_SUPPORT_CONNAC3X == 1)
+ 	uint8_t ucWlanIdx = 0;
+ 
+ 	ucWlanIdx = prNDLDisconn->ucStaIdx;
+diff --git a/nic/nic.c b/nic/nic.c
+index 2fb0b1b..dfabe00 100644
+--- a/nic/nic.c
++++ b/nic/nic.c
+@@ -338,6 +338,7 @@
+ 	if (prAdapter->pucLinkStatsSrcBufferAddr)
+ 		iounmap(prAdapter->pucLinkStatsSrcBufferAddr);
+ 	prAdapter->pucLinkStatsSrcBufferAddr = NULL;
++	prAdapter->pu4TxTimePerLevels = NULL;
+ #endif
+ 
+ #if CFG_DBG_MGT_BUF
+diff --git a/nic/nic_cmd_event.c b/nic/nic_cmd_event.c
+index d0c6604..3e9c5d0 100644
+--- a/nic/nic_cmd_event.c
++++ b/nic/nic_cmd_event.c
+@@ -917,7 +917,7 @@
+ 	struct GLUE_INFO *prGlueInfo;
+ 	uint32_t u4CurRxRate, u4MaxRxRate;
+ 	uint32_t u4QueryInfoLen;
+-	struct RateInfo rRateInfo = {0};
++	struct RxRateInfo rRxRateInfo = {0};
+ 	uint32_t i;
+ 
+ 	ASSERT(prAdapter);
+@@ -939,11 +939,11 @@
+ 
+ 			/*Fill Rx Rate in unit of 100bps*/
+ 			if (IS_BSS_INDEX_AIS(prAdapter, i) &&
+-			    wlanGetRxRate(prGlueInfo, i, &u4CurRxRate,
+-				    &u4MaxRxRate, &rRateInfo) == 0) {
++			    wlanGetRxRateByBssid(prGlueInfo, i, &u4CurRxRate,
++				    &u4MaxRxRate, &rRxRateInfo) == 0) {
+ 				pu4LinkSpeed->rLq[i].u2RxLinkSpeed =
+ 					u4CurRxRate * 1000;
+-				pu4LinkSpeed->rLq[i].u4RxBw = rRateInfo.u4Bw;
++				pu4LinkSpeed->rLq[i].u4RxBw = rRxRateInfo.u4Bw;
+ 			} else {
+ 				pu4LinkSpeed->rLq[i].u2RxLinkSpeed = 0;
+ 				pu4LinkSpeed->rLq[i].u4RxBw = 0;
+@@ -1098,6 +1098,16 @@
+ 		kalOidComplete(prGlueInfo, prCmdInfo, len, WLAN_STATUS_SUCCESS);
+ }
+ 
++/**
++ * Check buffer size against reported event buffer in this function,
++ * since the event buffer size, prEvent->u2PacketLength, is only available
++ * in this function.
++ *
++ * If the size is not enough, OID complete with FAILURE.
++ * If the size is enough, clear the destination buffer, and set the data length,
++ * call the command done handler, it will copy the data to returning buffer,
++ * and OID complete the caller if needed.
++ */
+ void nicEventStatsLinkStats(IN struct ADAPTER *prAdapter,
+ 		IN struct WIFI_EVENT *prEvent)
+ {
+@@ -2027,7 +2037,8 @@
+ 		prStaStatistics->u4AggRangeCtrl_1 =
+ 			prEvent->u4AggRangeCtrl_1;
+ 		prStaStatistics->ucRangeType = prEvent->ucRangeType;
+-#if (CFG_SUPPORT_CONNAC2X == 1)
++#if ((CFG_SUPPORT_CONNAC2X == 1) || \
++	(defined CFG_SUPPORT_CONNAC3X && CFG_SUPPORT_CONNAC3X == 1))
+ 		prStaStatistics->u4AggRangeCtrl_2 =
+ 			prEvent->u4AggRangeCtrl_2;
+ 		prStaStatistics->u4AggRangeCtrl_3 =
+@@ -2660,7 +2671,20 @@
+ 	}
+ 	/* Overwirte driver default setting here */
+ 	prAdapter->rWifiFemCfg.u2WifiPath = prPhyCap->ucWifiPath;
++	prAdapter->rWifiVar.ucHwNotSupportAC = (prPhyCap->ucVht) ? FALSE:TRUE;
+ 
++	if (!prPhyCap->ucVht) {
++#if CFG_SUPPORT_MTK_SYNERGY
++		prAdapter->rWifiVar.ucGbandProbe256QAM = FEATURE_DISABLED;
++		wlanCfgSetUint32(prAdapter, "Probe256QAM",
++			prAdapter->rWifiVar.ucGbandProbe256QAM);
++#endif
++#if CFG_SUPPORT_VHT_IE_IN_2G
++		prAdapter->rWifiVar.ucVhtIeIn2g = FEATURE_DISABLED;
++		wlanCfgSetUint32(prAdapter, "VhtIeIn2G",
++			prAdapter->rWifiVar.ucVhtIeIn2g);
++#endif
++	}
+ 
+ #if (CFG_SUPPORT_802_11AX == 1)
+ 	prAdapter->rWifiVar.ucStaHe &= prPhyCap->ucHe;
+@@ -2834,7 +2858,7 @@
+ {
+ 	struct CAP_LLS_DATA_EMI_OFFSET *prOffset =
+ 		(struct CAP_LLS_DATA_EMI_OFFSET *)pucEventBuf;
+-	uint32_t size = sizeof(struct HAL_LLS_FULL_REPORT);
++	uint32_t size = sizeof(struct HAL_LLS_FW_REPORT);
+ 	uint32_t offset = prOffset->u4DataEmiOffset & WIFI_EMI_ADDR_MASK;
+ 
+ 	uint32_t u4HostOffsetInfo =
+@@ -2842,15 +2866,16 @@
+ 	uint32_t u4HostOffsetAc =
+ 		OFFSET_OF(struct STATS_LLS_WIFI_IFACE_STAT, ac);
+ 	uint32_t u4HostOffsetPeerInfo =
+-		OFFSET_OF(struct HAL_LLS_FULL_REPORT, peer_info);
++		OFFSET_OF(struct HAL_LLS_FW_REPORT, peer_info);
+ 	uint32_t u4HostOffsetRadioStat =
+-		OFFSET_OF(struct HAL_LLS_FULL_REPORT, radio);
++		OFFSET_OF(struct HAL_LLS_FW_REPORT, radio);
+ 	uint32_t u4HostOffsetChannel =
+ 		OFFSET_OF(struct WIFI_RADIO_CHANNEL_STAT, channel);
+ 	uint32_t u4HostOffsetTxTimePerLevels =
+ 		OFFSET_OF(struct STATS_LLS_WIFI_RADIO_STAT, tx_time_per_levels);
+ 	uint32_t u4HostOffsetRxTime =
+ 		OFFSET_OF(struct STATS_LLS_WIFI_RADIO_STAT, rx_time);
++	uint8_t ucLinkStatsBssNum;
+ 
+ 	if (!gConEmiPhyBaseFinal) {
+ 		DBGLOG(INIT, ERROR,
+@@ -2864,6 +2889,23 @@
+ 			u4HostOffsetTxTimePerLevels, u4HostOffsetRxTime,
+ 			u4HostOffsetChannel);
+ 
++	if (!offset) {
++		DBGLOG(INIT, WARN, "NULL offset: offset=%p",
++				offset);
++		return WLAN_STATUS_FAILURE;
++	}
++
++	if (prOffset->u4OffsetPeerInfo %
++			sizeof(struct STATS_LLS_WIFI_IFACE_STAT)) {
++		DBGLOG(INIT, WARN, "u4OffsetPeerInfo not match(FW): %u/%zu",
++			prOffset->u4OffsetPeerInfo,
++			sizeof(struct STATS_LLS_WIFI_IFACE_STAT));
++		return WLAN_STATUS_FAILURE;
++	}
++
++	ucLinkStatsBssNum = prOffset->u4OffsetPeerInfo /
++			sizeof(struct STATS_LLS_WIFI_IFACE_STAT);
++
+ 	if (prOffset->u4OffsetInfo != u4HostOffsetInfo ||
+ 	    prOffset->u4OffsetAc != u4HostOffsetAc ||
+ 	    prOffset->u4OffsetPeerInfo != u4HostOffsetPeerInfo ||
+@@ -2882,6 +2924,7 @@
+ 		return WLAN_STATUS_FAILURE;
+ 	}
+ 
++	prAdapter->ucLinkStatsBssNum = ucLinkStatsBssNum;
+ 	if (prAdapter->pucLinkStatsSrcBufferAddr) {
+ 		DBGLOG(INIT, WARN, "LLS EMI has already set, update it.");
+ 		iounmap(prAdapter->pucLinkStatsSrcBufferAddr);
+@@ -3239,8 +3282,7 @@
+ #endif
+ 
+ 	/* command response handling */
+-	prCmdInfo = nicGetPendingCmdInfo(prAdapter,
+-					 prEvent->ucSeqNum);
++	prCmdInfo = nicGetPendingCmdInfo(prAdapter, prEvent->ucSeqNum);
+ 
+ 	DBGLOG(RX, TRACE, "prCmdInfo=%p", prCmdInfo);
+ 	if (prCmdInfo != NULL) {
+diff --git a/nic/nic_rate.c b/nic/nic_rate.c
+index 972f55a..d5242e8 100644
+--- a/nic/nic_rate.c
++++ b/nic/nic_rate.c
+@@ -1095,18 +1095,20 @@
+ {
+ 	uint32_t txmode, rate, frmode, sgi, nsts, ldpc, stbc, groupid, mu;
+ 	int32_t i4BytesWritten = 0;
+-	uint32_t u4RxVector0 = 0, u4RxVector1 = 0;
++	uint32_t au4RxV[2] = {0};
+ 	uint8_t ucStaIdx;
+ 	struct CHIP_DBG_OPS *prChipDbg;
++	uint32_t *prRxV = NULL;
+ 
+ 	if (wlanGetStaIdxByWlanIdx(prAdapter, ucWlanIdx, &ucStaIdx) ==
+ 	    WLAN_STATUS_SUCCESS) {
+-		u4RxVector0 = prAdapter->arStaRec[ucStaIdx].u4RxVector0;
+-		u4RxVector1 = prAdapter->arStaRec[ucStaIdx].u4RxVector1;
++		prRxV = prAdapter->arStaRec[ucStaIdx].au4RxV;
++		au4RxV[0] = prRxV[0];
++		au4RxV[1] = prRxV[1];
+ 		DBGLOG(REQ, LOUD, "****** RX Vector0 = 0x%08x ******\n",
+-		       u4RxVector0);
++		       au4RxV[0]);
+ 		DBGLOG(REQ, LOUD, "****** RX Vector1 = 0x%08x ******\n",
+-		       u4RxVector1);
++		       au4RxV[1]);
+ 	} else {
+ 		i4BytesWritten += kalScnprintf(pcCommand + i4BytesWritten,
+ 			i4TotalLen - i4BytesWritten,
+@@ -1125,14 +1127,14 @@
+ 		return i4BytesWritten;
+ 	}
+ 
+-	txmode = (u4RxVector0 & RX_VT_RX_MODE_MASK) >> RX_VT_RX_MODE_OFFSET;
+-	rate = (u4RxVector0 & RX_VT_RX_RATE_MASK) >> RX_VT_RX_RATE_OFFSET;
+-	frmode = (u4RxVector0 & RX_VT_FR_MODE_MASK) >> RX_VT_FR_MODE_OFFSET;
+-	nsts = ((u4RxVector1 & RX_VT_NSTS_MASK) >> RX_VT_NSTS_OFFSET);
+-	stbc = (u4RxVector0 & RX_VT_STBC_MASK) >> RX_VT_STBC_OFFSET;
+-	sgi = u4RxVector0 & RX_VT_SHORT_GI;
+-	ldpc = u4RxVector0 & RX_VT_LDPC;
+-	groupid = (u4RxVector1 & RX_VT_GROUP_ID_MASK) >> RX_VT_GROUP_ID_OFFSET;
++	txmode = (au4RxV[0] & RX_VT_RX_MODE_MASK) >> RX_VT_RX_MODE_OFFSET;
++	rate = (au4RxV[0] & RX_VT_RX_RATE_MASK) >> RX_VT_RX_RATE_OFFSET;
++	frmode = (au4RxV[0] & RX_VT_FR_MODE_MASK) >> RX_VT_FR_MODE_OFFSET;
++	nsts = (au4RxV[1] & RX_VT_NSTS_MASK) >> RX_VT_NSTS_OFFSET;
++	stbc = (au4RxV[0] & RX_VT_STBC_MASK) >> RX_VT_STBC_OFFSET;
++	sgi = au4RxV[0] & RX_VT_SHORT_GI;
++	ldpc = au4RxV[0] & RX_VT_LDPC;
++	groupid = (au4RxV[1] & RX_VT_GROUP_ID_MASK) >> RX_VT_GROUP_ID_OFFSET;
+ 
+ 	if (groupid && groupid != 63) {
+ 		mu = 1;
+diff --git a/nic/nic_rx.c b/nic/nic_rx.c
+index 4169d61..81f8d68 100644
+--- a/nic/nic_rx.c
++++ b/nic/nic_rx.c
+@@ -269,6 +269,7 @@
+  *******************************************************************************
+  */
+ 
++
+ /*******************************************************************************
+  *                              F U N C T I O N S
+  *******************************************************************************
+@@ -428,50 +429,20 @@
+  * @prSwRfb: RFB of received frame
+  *
+  * If parsed data will be saved in
+- * prAdapter->arStaRec[prSwRfb->ucStaRecIdx].u4RxVector[*], then can be used
++ * prAdapter->arStaRec[prSwRfb->ucStaRecIdx].u4RxV[*], then can be used
+  * for calling wlanGetRxRate().
+  */
+-static void nicRxProcessRxv(IN struct ADAPTER *prAdapter,
++void nicRxProcessRxv(IN struct ADAPTER *prAdapter,
+ 		IN struct SW_RFB *prSwRfb)
+ {
+ #if (CFG_SUPPORT_MSP == 1)
+ 	struct mt66xx_chip_info *prChipInfo;
+-	void *pvPacket;
+-	uint8_t *pucEthDestAddr;
+-	struct WIFI_VAR *prWifiVar;
+ 
+ 	prChipInfo = prAdapter->chip_info;
+ 
+ 	if (!prChipInfo || !prChipInfo->asicRxProcessRxvforMSP)
+ 		return;
+ 
+-	/* ignore non-data frame */
+-	if (!prSwRfb->fgDataFrame)
+-		return;
+-
+-	pucEthDestAddr = prSwRfb->pvHeader;
+-	if (!pucEthDestAddr)
+-		return;
+-
+-	pvPacket = prSwRfb->pvPacket;
+-	if (!pvPacket)
+-		return;
+-
+-	/* Ignore BMC pkt */
+-	if (prSwRfb->fgIsBC || prSwRfb->fgIsMC ||
+-		IS_BMCAST_MAC_ADDR(pucEthDestAddr))
+-		return;
+-
+-	/* Ignore filtered pkt, such as ARP */
+-	prWifiVar = &prAdapter->rWifiVar;
+-	if (GLUE_IS_PKT_FLAG_SET(pvPacket) &
+-		prWifiVar->u4RxRateProtoFilterMask) {
+-		DBGLOG(RX, TEMP, "u4RxRateProtoFilterMask:%u, proto:%u\n",
+-			prWifiVar->u4RxRateProtoFilterMask,
+-			GLUE_IS_PKT_FLAG_SET(pvPacket));
+-		return;
+-	}
+-
+ 	prChipInfo->asicRxProcessRxvforMSP(prAdapter, prSwRfb);
+ #endif /* CFG_SUPPORT_MSP == 1 */
+ }
+@@ -2030,29 +2001,9 @@
+ 	DBGLOG(RX, TRACE, "Noise_level avg:%d latest:%d\n",
+ 		prStaRec->ucNoise_avg, noise_level);
+ 
+-	/* Rx rate */
+-	ucRxMode = ((prSwRfb->prRxStatusGroup3->u4RxVector[0] &
+-				RX_VT_RX_MODE_MASK) >> RX_VT_RX_MODE_OFFSET);
+-
+-	/* Bit Number 2 RATE */
+-	if (ucRxMode == RX_VT_LEGACY_CCK || ucRxMode == RX_VT_LEGACY_OFDM) {
+-		/* Bit[2:0] for Legacy CCK, Bit[3:0] for Legacy OFDM */
+-		ucRxRate =
+-		(prSwRfb->prRxStatusGroup3->u4RxVector[0] & BITS(0, 3));
+-		prStaRec->u4LastPhyRate = nicGetHwRateByPhyRate(ucRxRate) * 5;
+-	} else {
+-		ucMcs = (prSwRfb->prRxStatusGroup3->u4RxVector[0] &
+-			RX_VT_RX_RATE_AC_MASK);
+-		/* VHTA1 B0-B1 */
+-		ucFrMode = ((prSwRfb->prRxStatusGroup3->u4RxVector[0] &
+-			RX_VT_FR_MODE_MASK) >> RX_VT_FR_MODE_OFFSET);
+-		ucShortGI = (prSwRfb->prRxStatusGroup3->u4RxVector[0] &
+-			RX_VT_SHORT_GI) ? 1 : 0;
+-
+-		/* ucRate(500kbs) = u4PhyRate(100kbps) / 5,max ucRate = 0xFF */
+-		prStaRec->u4LastPhyRate = nicGetPhyRateByMcsRate(ucMcs,
+-				ucFrMode, ucShortGI);
+-	}
++	wlanGetRxRateByBssid(prAdapter->prGlueInfo,
++				GLUE_GET_PKT_BSS_IDX(prRetSwRfb->pvPacket),
++				&prStaRec->u4LastPhyRate, NULL, NULL);
+ }
+ #endif /* fos_change end */
+ 
+@@ -2102,7 +2053,7 @@
+ 	while (prRetSwRfb) {
+ 		/**
+ 		 * Collect RXV information,
+-		 * prAdapter->arStaRec[i].u4RxVector[*] updated.
++		 * prAdapter->arStaRec[i].u4RxV[*] updated.
+ 		 * wlanGetRxRate() can get new rate values
+ 		 */
+ 		nicRxProcessRxv(prAdapter, prRetSwRfb);
+@@ -3719,6 +3670,13 @@
+ 
+ 	nicRxFillRFB(prAdapter, prSwRfb);
+ 
++	if (!prSwRfb->pvHeader || !prSwRfb->pvPacket) {
++		RX_INC_CNT(&prAdapter->rRxCtrl, RX_NULL_PACKET_COUNT);
++		RX_INC_CNT(&prAdapter->rRxCtrl, RX_DROP_TOTAL_COUNT);
++		nicRxReturnRFB(prAdapter, prSwRfb);
++		return;
++	}
++
+ #if CFG_WIFI_SW_CIPHER_MISMATCH
+ 	prWlanHeader = (struct WLAN_MAC_HEADER *) prSwRfb->pvHeader;
+ #endif
+@@ -3927,40 +3885,6 @@
+ 		}
+ 	}
+ 
+-	/* P-B-0[0:31] */
+-	if (RX_RPT_GET_RXV_TYPE_PRXV1_VLD(prRxRpt))
+-		prAdapter->arStaRec[prSwRfb->ucStaRecIdx].u4RxVector0 =
+-			prRxRptBlkRxv->u4PRxv1[0];
+-	else
+-		prAdapter->arStaRec[prSwRfb->ucStaRecIdx].u4RxVector0 = 0;
+-
+-#if (CFG_SUPPORT_CONNAC2X == 1)
+-	if (RX_RPT_GET_RXV_TYPE_CRXV1_VLD(prRxRpt)) {
+-		/* C-B-0[0:31] */
+-		prAdapter->arStaRec[prSwRfb->ucStaRecIdx].u4RxVector1 =
+-			prRxRptBlkRxv->u4CRxv1[0];
+-		/* C-B-1[0:31] */
+-		prAdapter->arStaRec[prSwRfb->ucStaRecIdx].u4RxVector2 =
+-			prRxRptBlkRxv->u4CRxv1[2];
+-		/* C-B-3[0:31] */
+-		prAdapter->arStaRec[prSwRfb->ucStaRecIdx].u4RxVector3 =
+-			prRxRptBlkRxv->u4CRxv1[4];
+-		/* C-B-3[0:31] */
+-		prAdapter->arStaRec[prSwRfb->ucStaRecIdx].u4RxVector4 =
+-			prRxRptBlkRxv->u4CRxv1[6];
+-	} else {
+-		prAdapter->arStaRec[prSwRfb->ucStaRecIdx].u4RxVector1 =
+-			0;
+-		prAdapter->arStaRec[prSwRfb->ucStaRecIdx].u4RxVector2 =
+-			0;
+-		prAdapter->arStaRec[prSwRfb->ucStaRecIdx].u4RxVector3 =
+-			0;
+-		prAdapter->arStaRec[prSwRfb->ucStaRecIdx].u4RxVector4 =
+-			0;
+-		DBGLOG(RX, WARN, "RX_RPT C-RXV1 not valid!\n");
+-	}
+-#endif
+-
+ 	if (prRxRptBlkRxv)
+ 		kalMemFree(prRxRptBlkRxv, VIR_MEM_TYPE,
+ 			sizeof(struct SW_RX_RPT_BLK_RXV));
+@@ -4767,7 +4691,7 @@
+ 		if (prBssInfo->eNetworkType == NETWORK_TYPE_NAN) {
+ 			if (prSwRfb->prStaRec->fgIsTxKeyReady == TRUE) {
+ 				/* NAN Todo: Not HW_MAC_RX_DESC here */
+-#if (CFG_SUPPORT_CONNAC3X == 1)
++#if (defined CFG_SUPPORT_CONNAC3X && CFG_SUPPORT_CONNAC3X == 1)
+ 				if (
+ 				HAL_MAC_CONNAC3X_RX_STATUS_IS_CIPHER_MISMATCH(
+ 				(struct HW_MAC_CONNAC3X_RX_DESC *)prSwRfb
+@@ -5227,15 +5151,15 @@
+ {
+ 	int32_t i4RSSI0 = 0, i4RSSI1 = 0, i4RSSI2 = 0, i4RSSI3 = 0;
+ 	int32_t i4BytesWritten = 0;
+-	uint32_t u4RxVector3 = 0;
++	uint32_t u4RxV3 = 0;
+ 	uint8_t ucStaIdx;
+ 	struct CHIP_DBG_OPS *prChipDbg;
+ 
+ 	if (wlanGetStaIdxByWlanIdx(prAdapter, ucWlanIdx, &ucStaIdx) ==
+ 	    WLAN_STATUS_SUCCESS) {
+-		u4RxVector3 = prAdapter->arStaRec[ucStaIdx].u4RxVector3;
++		u4RxV3 = prAdapter->arStaRec[ucStaIdx].au4RxV[3];
+ 		DBGLOG(REQ, LOUD, "****** RX Vector3 = 0x%08x ******\n",
+-		       u4RxVector3);
++		       u4RxV3);
+ 	} else {
+ 		i4BytesWritten += kalScnprintf(pcCommand + i4BytesWritten,
+ 			i4TotalLen - i4BytesWritten,
+@@ -5254,15 +5178,15 @@
+ 		return i4BytesWritten;
+ 	}
+ 
+-	i4RSSI0 = RCPI_TO_dBm((u4RxVector3 & RX_VT_RCPI0_MASK) >>
++	i4RSSI0 = RCPI_TO_dBm((u4RxV3 & RX_VT_RCPI0_MASK) >>
+ 			      RX_VT_RCPI0_OFFSET);
+-	i4RSSI1 = RCPI_TO_dBm((u4RxVector3 & RX_VT_RCPI1_MASK) >>
++	i4RSSI1 = RCPI_TO_dBm((u4RxV3 & RX_VT_RCPI1_MASK) >>
+ 			      RX_VT_RCPI1_OFFSET);
+ 
+ 	if (prAdapter->rWifiVar.ucNSS > 2) {
+-		i4RSSI2 = RCPI_TO_dBm((u4RxVector3 & RX_VT_RCPI2_MASK) >>
++		i4RSSI2 = RCPI_TO_dBm((u4RxV3 & RX_VT_RCPI2_MASK) >>
+ 				      RX_VT_RCPI2_OFFSET);
+-		i4RSSI3 = RCPI_TO_dBm((u4RxVector3 & RX_VT_RCPI3_MASK) >>
++		i4RSSI3 = RCPI_TO_dBm((u4RxV3 & RX_VT_RCPI3_MASK) >>
+ 				      RX_VT_RCPI3_OFFSET);
+ 
+ 		i4BytesWritten += kalScnprintf(pcCommand + i4BytesWritten,
+@@ -5277,3 +5201,67 @@
+ 	return i4BytesWritten;
+ }
+ 
++/**
++ * For MLO, it should read prSwRfb->ucHwBandIdx to match the RX link.
++ */
++static void updateLinkStatsMpduAc(struct ADAPTER *prAdapter,
++				struct SW_RFB *prSwRfb)
++{
++#if CFG_SUPPORT_LLS
++	static const uint8_t Tid2LinkStatsAc[] = {
++		STATS_LLS_WIFI_AC_BE,
++		STATS_LLS_WIFI_AC_BK,
++		STATS_LLS_WIFI_AC_BK,
++		STATS_LLS_WIFI_AC_BE,
++		STATS_LLS_WIFI_AC_VI,
++		STATS_LLS_WIFI_AC_VI,
++		STATS_LLS_WIFI_AC_VO,
++		STATS_LLS_WIFI_AC_VO,
++	};
++	uint8_t ac;
++	uint8_t ucBssIdx = GLUE_GET_PKT_BSS_IDX(prSwRfb->pvPacket);
++	struct BSS_INFO *prBssInfo;
++
++	ac = Tid2LinkStatsAc[(uint8_t)(prSwRfb->ucTid & 0x7U)];
++	if (prSwRfb->ucPayloadFormat == RX_PAYLOAD_FORMAT_MSDU ||
++	    prSwRfb->ucPayloadFormat == RX_PAYLOAD_FORMAT_FIRST_SUB_AMSDU) {
++		prBssInfo = GET_BSS_INFO_BY_INDEX(prAdapter, ucBssIdx);
++		if (!prBssInfo)
++			return;
++
++#if (defined CFG_SUPPORT_802_11BE_MLO && CFG_SUPPORT_802_11BE_MLO == 1)
++		if (prBssInfo->eHwBandIdx != prSwRfb->ucHwBandIdx) {
++			uint8_t ucHwBandIdx = prSwRfb->ucHwBandIdx;
++			uint8_t i;
++
++			/* find the BSS by matching the band index */
++			/* TODO: performance? */
++			for (i = 0; i < MAX_BSSID_NUM; i++) {
++				prBssInfo = GET_BSS_INFO_BY_INDEX(prAdapter, i);
++				if (prBssInfo &&
++				    prBssInfo->eHwBandIdx == ucHwBandIdx)
++					break;
++			}
++
++			if (!prBssInfo)
++				return;
++		}
++#endif
++		prBssInfo->u4RxMpduAc[ac]++;
++	}
++#endif
++}
++
++void nicRxProcessRxvLinkStats(struct ADAPTER *prAdapter,
++			      struct SW_RFB *prRetSwRfb, uint32_t *pu4RxV)
++{
++#if CFG_SUPPORT_LLS
++	struct CHIP_DBG_OPS *prChipDbg;
++
++	prChipDbg = prAdapter->chip_info->prDebugOps;
++	if (prChipDbg && prChipDbg->get_rx_link_stats)
++		prChipDbg->get_rx_link_stats(prAdapter, prRetSwRfb, pu4RxV);
++
++	updateLinkStatsMpduAc(prAdapter, prRetSwRfb);
++#endif
++}
+diff --git a/nic/nic_rxd_v1.c b/nic/nic_rxd_v1.c
+index 968698e..fff3166 100644
+--- a/nic/nic_rxd_v1.c
++++ b/nic/nic_rxd_v1.c
+@@ -328,10 +328,19 @@
+ 	struct mt66xx_chip_info *prChipInfo;
+ 	struct HW_MAC_RX_DESC *prRxStatus;
+ 	u_int8_t fgDrop = FALSE;
++	struct RX_CTRL *prRxCtrl;
+ 	uint8_t ucBssIndex = 0;
+ 
++	prRxCtrl = &prAdapter->rRxCtrl;
++
+ 	prChipInfo = prAdapter->chip_info;
+ 	prRxStatus = (struct HW_MAC_RX_DESC *)prSwRfb->prRxStatus;
++
++	if (prSwRfb->pvPacket == NULL) {
++		fgDrop = TRUE;
++		goto end;
++	}
++
+ 	/* BA session */
+ 	if ((prRxStatus->u2StatusFlag & RXS_DW2_AMPDU_nERR_BITMAP)
+ 	    == RXS_DW2_AMPDU_nERR_VALUE)
+@@ -408,6 +417,12 @@
+ 		}
+ #endif
+ 
++end:
++		if (fgDrop) {
++			if (prSwRfb->pvPacket == NULL)
++				RX_INC_CNT(prRxCtrl, RX_NULL_PACKET_COUNT);
++		}
++
+ 		DBGLOG(RSN, TRACE, "Sanity check to drop:%d\n", fgDrop);
+ 	}
+ 
+diff --git a/nic/nic_rxd_v2.c b/nic/nic_rxd_v2.c
+index 4a42f20..f580847 100644
+--- a/nic/nic_rxd_v2.c
++++ b/nic/nic_rxd_v2.c
+@@ -180,29 +180,6 @@
+ 		(struct HW_MAC_CONNAC2X_RX_DESC *)prRxStatus);
+ }
+ 
+-static void updateLinkStatsMpduAc(struct ADAPTER *prAdapter,
+-		struct SW_RFB *prSwRfb)
+-{
+-#if CFG_SUPPORT_LLS
+-	static const uint8_t Tid2LinkStatsAc[] = {
+-		STATS_LLS_WIFI_AC_BE,
+-		STATS_LLS_WIFI_AC_BK,
+-		STATS_LLS_WIFI_AC_BK,
+-		STATS_LLS_WIFI_AC_BE,
+-		STATS_LLS_WIFI_AC_VI,
+-		STATS_LLS_WIFI_AC_VI,
+-		STATS_LLS_WIFI_AC_VO,
+-		STATS_LLS_WIFI_AC_VO,
+-	};
+-	uint8_t ac;
+-
+-	ac = Tid2LinkStatsAc[(uint8_t)(prSwRfb->ucTid & 0x7U)];
+-	if (prSwRfb->ucPayloadFormat == RX_PAYLOAD_FORMAT_MSDU ||
+-	    prSwRfb->ucPayloadFormat == RX_PAYLOAD_FORMAT_FIRST_SUB_AMSDU)
+-		prAdapter->u4RxMpduAc[ac]++;
+-#endif
+-}
+-
+ /*----------------------------------------------------------------------------*/
+ /*!
+  * @brief Fill RFB
+@@ -326,8 +303,6 @@
+ 	prSwRfb->ucChnlNum =
+ 		HAL_MAC_CONNAC2X_RX_STATUS_GET_CHNL_NUM(prRxStatus);
+ 
+-	updateLinkStatsMpduAc(prAdapter, prSwRfb);
+-
+ #if 0
+ 	if (prHifRxHdr->ucReorder &
+ 	    HIF_RX_HDR_80211_HEADER_FORMAT) {
+@@ -386,8 +361,11 @@
+ 	struct mt66xx_chip_info *prChipInfo;
+ 	struct HW_MAC_CONNAC2X_RX_DESC *prRxStatus;
+ 	u_int8_t fgDrop = FALSE;
++	struct RX_CTRL *prRxCtrl;
+ 	uint8_t ucBssIndex = 0;
+ 
++	prRxCtrl = &prAdapter->rRxCtrl;
++
+ 	prChipInfo = prAdapter->chip_info;
+ 	prRxStatus = (struct HW_MAC_CONNAC2X_RX_DESC *)prSwRfb->prRxStatus;
+ 
+@@ -395,6 +373,11 @@
+ 		secGetBssIdxByWlanIdx(prAdapter,
+ 		HAL_MAC_CONNAC2X_RX_STATUS_GET_WLAN_IDX(prRxStatus));
+ 
++	if (prSwRfb->pvPacket == NULL) {
++		fgDrop = TRUE;
++		goto end;
++	}
++
+ 	if (!HAL_MAC_CONNAC2X_RX_STATUS_IS_FCS_ERROR(prRxStatus)
+ 	    && !HAL_MAC_CONNAC2X_RX_STATUS_IS_DAF(prRxStatus)
+ 	    && !HAL_MAC_CONNAC2X_RX_STATUS_IS_ICV_ERROR(prRxStatus)
+@@ -513,6 +496,12 @@
+ 	if (HAL_MAC_CONNAC2X_RX_STATUS_GET_DW5_CLS_BITMAP_OFFSET(prRxStatus))
+ 		DBGLOG(RX, WARN, "RX DW5[0x%08x]\n", prRxStatus->u4DW5);
+ 
++end:
++	if (fgDrop) {
++		if (prSwRfb->pvPacket == NULL)
++			RX_INC_CNT(prRxCtrl, RX_NULL_PACKET_COUNT);
++	}
++
+ 	return fgDrop;
+ }
+ 
+diff --git a/os/linux/gl_cfg80211.c b/os/linux/gl_cfg80211.c
+index d075d94..a7c0ea2 100644
+--- a/os/linux/gl_cfg80211.c
++++ b/os/linux/gl_cfg80211.c
+@@ -527,7 +527,7 @@
+ 	uint32_t u4QueryBufLen;
+ 	uint32_t u4QueryInfoLen;
+ 	struct _STATS_LLS_TX_RATE_INFO targetRateInfo;
+-	struct HAL_LLS_FULL_REPORT *src;
++	struct HAL_LLS_FW_REPORT *src;
+ 
+ 	if (unlikely(ucBssIndex >= BSSID_NUM))
+ 		return WLAN_STATUS_FAILURE;
+diff --git a/os/linux/gl_kal.c b/os/linux/gl_kal.c
+index b778d5e..96a5425 100644
+--- a/os/linux/gl_kal.c
++++ b/os/linux/gl_kal.c
+@@ -7910,8 +7910,8 @@
+ 	prCmdPerfReport->u2CmdLen = sizeof(struct CMD_PERF_IND);
+ 
+ 	prCmdPerfReport->u4VaildPeriod = PERF_UPDATE_PERIOD;
+-	ret = wlanGetRxRate(prAdapter->prGlueInfo, 0, &u4Rate, &u4MaxRate,
+-			    NULL);
++	ret = wlanGetRxRateByBssid(prAdapter->prGlueInfo, 0, &u4Rate,
++				   &u4MaxRate, NULL);
+ 	u4Rate /= 10;
+ 
+ 	for (i = 0; i < BSS_DEFAULT_NUM; i++) {
+diff --git a/os/linux/gl_vendor.c b/os/linux/gl_vendor.c
+index a374947..3cd21f1 100644
+--- a/os/linux/gl_vendor.c
++++ b/os/linux/gl_vendor.c
+@@ -72,6 +72,7 @@
+ #include <linux/can/netlink.h>
+ #include <net/netlink.h>
+ #include <net/cfg80211.h>
++#include <net/mac80211.h>
+ #include "gl_cfg80211.h"
+ #include "gl_vendor.h"
+ #include "wlan_oid.h"
+@@ -919,11 +920,12 @@
+ 
+ 
+ #if CFG_SUPPORT_LLS
+-void dumpLinkStatsIface(struct STATS_LLS_WIFI_IFACE_STAT *iface)
++static void dumpLinkStatsIface(struct STATS_LLS_WIFI_IFACE_STAT *iface)
+ {
+ 	DBGLOG(REQ, INFO, "Dump iface");
+ 
+-	DBGLOG(REQ, INFO, "%p %u "MACSTR " %u %u %u %s" MACSTR " %u%u%u %u%u%u",
++	DBGLOG(REQ, INFO,
++		"0x%p %u "MACSTR " %u %u %u '%s' " MACSTR " %c%c%c %c%c%c %u",
+ 			iface->iface,
+ 			iface->info.mode,
+ 			MAC2STR(iface->info.mac_addr),
+@@ -937,10 +939,10 @@
+ 			iface->info.ap_country_str[2],
+ 			iface->info.country_str[0],
+ 			iface->info.country_str[1],
+-			iface->info.country_str[2]);
++			iface->info.country_str[2],
++			iface->info.time_slicing_duty_cycle_percent);
+ 
+-	DBGLOG(REQ, INFO, "%u %u %llu %u %u %u %u %u %u %u %u %u [%u]",
+-			iface->info.time_slicing_duty_cycle_percent,
++	DBGLOG(REQ, INFO, "%u %llu %u %u %u %u %u %u %d %d %d AC[] [%u]",
+ 			iface->beacon_rx,
+ 			iface->average_tsf_offset,
+ 			iface->leaky_ap_detected,
+@@ -952,10 +954,63 @@
+ 			iface->rssi_mgmt,
+ 			iface->rssi_data,
+ 			iface->rssi_ack,
++			/* AC */
+ 			iface->num_peers);
+ }
+ 
++static void dumpLinkStatsMultiLinkIface(uint8_t bss_idx,
++		struct STATS_LLS_WIFI_IFACE_ML_STAT *ml_iface)
++{
++	DBGLOG(REQ, INFO, "Dump ml_iface, bss_isx=%u", bss_idx);
++
++	DBGLOG(REQ, INFO,
++		"0x%p %u "MACSTR " %u %u %u '%s' " MACSTR " %c%c%c %c%c%c %u",
++		ml_iface->iface,
++		ml_iface->info.mode,
++		MAC2STR(ml_iface->info.mac_addr),
++		ml_iface->info.state,
++		ml_iface->info.roaming,
++		ml_iface->info.capabilities,
++		ml_iface->info.ssid,
++		MAC2STR(ml_iface->info.bssid),
++		ml_iface->info.ap_country_str[0],
++		ml_iface->info.ap_country_str[1],
++		ml_iface->info.ap_country_str[2],
++		ml_iface->info.country_str[0],
++		ml_iface->info.country_str[1],
++		ml_iface->info.country_str[2],
++		ml_iface->info.time_slicing_duty_cycle_percent);
++}
++
++static void dumpLinkStatsLink(struct STATS_LLS_WIFI_LINK_STAT *link,
++		int32_t link_id)
++{
++	DBGLOG(REQ, INFO, "Dump ml_link[%d]", link_id);
++
++	DBGLOG(REQ, INFO,
++		"%u %u %d %u  %u %llu %u %u %u %u %u %u %d %d %d AC[] %u [%u]",
++		link->link_id,
++		link->state,
++		link->radio,
++		link->frequency,
++
++		link->beacon_rx,
++		link->average_tsf_offset,
++		link->leaky_ap_detected,
++		link->leaky_ap_avg_num_frames_leaked,
++		link->leaky_ap_guard_time,
++		link->mgmt_rx,
++		link->mgmt_action_rx,
++		link->mgmt_action_tx,
++		link->rssi_mgmt,
++		link->rssi_data,
++		link->rssi_ack,
++		/* AC */
++		link->time_slicing_duty_cycle_precent,
++		link->num_peers);
++}
++
+-void dumpLinkStatsAc(struct STATS_LLS_WMM_AC_STAT *ac_stat,
++static void dumpLinkStatsAc(struct STATS_LLS_WMM_AC_STAT *ac_stat,
+ 		enum ENUM_STATS_LLS_AC ac)
+ {
+ 	static const char * const s[STATS_LLS_WIFI_AC_MAX] = {
+@@ -981,12 +1036,13 @@
+ }
+ 
+ 
+-void dumpLinkStatsPeerInfo(struct STATS_LLS_PEER_INFO *peer, uint32_t idx)
++static void dumpLinkStatsPeerInfo(struct STATS_LLS_PEER_INFO *peer,
++				uint32_t idx)
+ {
+ 	static const char * const type[STATS_LLS_WIFI_PEER_INVALID + 1] = {
+ 		"STA", "AP", "P2P_GO", "P2P_CLIENT", "NAN", "TDLS", "INVALID"};
+ 
+-	DBGLOG(REQ, INFO, "Peer(%u) %u(%s)" MACSTR "%u %u %u [%u]",
++	DBGLOG(REQ, INFO, "Peer(%u) %u(%s) " MACSTR " %u %u %u [%u]",
+ 			idx,
+ 			peer->type, type[(uint32_t)peer->type],
+ 			MAC2STR(peer->peer_mac_address),
+@@ -997,14 +1053,14 @@
+ }
+ 
+ 
+-void dumpLinkStatsRate(struct STATS_LLS_RATE_STAT *rate, uint32_t idx)
++static void dumpLinkStatsRate(struct STATS_LLS_RATE_STAT *rate, uint32_t idx)
+ {
+ 	static const char * const preamble[] = {
+-		"OFDM", "CCK", "HT", "VHT", "HE", "", "", ""};
++		"OFDM", "CCK", "HT", "VHT", "HE", "EHT", "", ""};
+ 
+ 	DBGLOG(REQ, INFO, "Rate(%u) %u(%s) %u %u %u %u %u %u %u %u %u %u",
+ 			idx,
+-			rate->rate.preamble, rate->rate.preamble > 4 ? "" :
++			rate->rate.preamble, rate->rate.preamble > 5 ? "" :
+ 			preamble[rate->rate.preamble],
+ 			rate->rate.nss,
+ 			rate->rate.bw,
+@@ -1018,7 +1074,8 @@
+ 			rate->retries_long);
+ }
+ 
+-void dumpLinkStatsRadio(struct STATS_LLS_WIFI_RADIO_STAT *radio, uint32_t idx)
++static void dumpLinkStatsRadio(struct STATS_LLS_WIFI_RADIO_STAT *radio,
++				uint32_t idx)
+ {
+ 	DBGLOG(REQ, INFO, "Radio(%u) %d %u %u %u %p %u %u %u %u %u %u %u [%u]",
+ 			idx,
+@@ -1027,7 +1084,7 @@
+ 			radio->tx_time,
+ 			radio->num_tx_levels,
+ 			radio->tx_time_per_levels,
+-			radio->tx_time,
++			radio->rx_time,
+ 			radio->on_time_scan,
+ 			radio->on_time_nbd,
+ 			radio->on_time_gscan,
+@@ -1037,20 +1094,30 @@
+ 			radio->num_channels);
+ }
+ 
+-void dumpLinkStatsChannel(struct STATS_LLS_CHANNEL_STAT *channel, uint32_t idx)
++static void dumpLinkStatsPowerLevels(uint8_t *ptr, uint8_t band, uint32_t size)
++{
++	DBGLOG(REQ, INFO, "PowerLevels: %p, #%u, size=%u\n",
++			ptr, band, size);
++	DBGLOG_HEX(REQ, INFO, ptr, size);
++}
++
++static void dumpLinkStatsChannel(struct STATS_LLS_CHANNEL_STAT *channel,
++		uint32_t idx)
+ {
+ 	DBGLOG(REQ, INFO, "Channel(%u) %u %d %d %d %u %u",
+ 			idx,
+-			channel->channel.center_freq,
+ 			channel->channel.width,
++			channel->channel.center_freq,
+ 			channel->channel.center_freq0,
+ 			channel->channel.center_freq1,
+ 			channel->on_time,
+ 			channel->cca_busy_time);
+ }
+ 
+-
+-struct STA_RECORD *find_peer_starec(struct ADAPTER *prAdapter,
++/**
++ * find_peer_starec() - return a station record by matching peer's MAC address
++ */
++static struct STA_RECORD *find_peer_starec(struct ADAPTER *prAdapter,
+ 		struct STATS_LLS_PEER_INFO *peer_info)
+ {
+ 	struct STA_RECORD *prStaRec;
+@@ -1073,30 +1140,37 @@
+ 	return prStaRec;
+ }
+ 
+-uint32_t receivedMpduCount(struct STA_RECORD *sta_rec,
++/**
++ * Return the accumulated MPDU count of the given rate parameters.
++ */
++static uint32_t receivedMpduCount(struct STA_RECORD *sta_rec,
+ 		struct STATS_LLS_RATE_STAT *rate_stats,
+ 		uint32_t ofdm_idx, uint32_t cck_idx)
+ {
+ 	struct STATS_LLS_WIFI_RATE *rate = &rate_stats->rate;
+ 	uint32_t n = 0;
++	uint32_t mcsIdx;
+ 
+ 	if (!sta_rec)
+ 		return 0;
+ 
++	mcsIdx = rate->rateMcsIdx;
+ 	if (rate->preamble == LLS_MODE_OFDM)
+ 		n = sta_rec->u4RxMpduOFDM[rate->nss][rate->bw][ofdm_idx];
+ 	else if (rate->preamble == LLS_MODE_CCK)
+ 		n = sta_rec->u4RxMpduCCK[rate->nss][rate->bw][cck_idx];
+ 	else if (rate->preamble == LLS_MODE_HT)
+-		n = sta_rec->u4RxMpduHT[rate->nss][rate->bw][rate->rateMcsIdx];
++		n = sta_rec->u4RxMpduHT[rate->nss][rate->bw][mcsIdx];
+ 	else if (rate->preamble == LLS_MODE_VHT)
+-		n = sta_rec->u4RxMpduVHT[rate->nss][rate->bw][rate->rateMcsIdx];
++		n = sta_rec->u4RxMpduVHT[rate->nss][rate->bw][mcsIdx];
+ 	else if (rate->preamble == LLS_MODE_HE)
+-		n = sta_rec->u4RxMpduHE[rate->nss][rate->bw][rate->rateMcsIdx];
++		n = sta_rec->u4RxMpduHE[rate->nss][rate->bw][mcsIdx];
++	else if (rate->preamble == LLS_MODE_EHT)
++		n = sta_rec->u4RxMpduEHT[rate->nss][rate->bw][mcsIdx];
+ 	return n;
+ }
+ 
+-uint8_t isValidRate(struct STATS_LLS_RATE_STAT *rate_stats,
++static uint8_t isValidRate(struct STATS_LLS_RATE_STAT *rate_stats,
+ 	uint32_t ofdm_idx, uint32_t cck_idx)
+ {
+ 	struct STATS_LLS_WIFI_RATE *rate = &rate_stats->rate;
+@@ -1132,6 +1206,12 @@
+ 		    rate->rateMcsIdx >= STATS_LLS_HE_NUM)
+ 			goto invalid_rate;
+ 		break;
++	case LLS_MODE_EHT:
++		if (rate->nss >= STATS_LLS_MAX_NSS_NUM ||
++		    rate->bw >= STATS_LLS_MAX_EHT_BW_NUM ||
++		    rate->rateMcsIdx >= STATS_LLS_EHT_NUM)
++			goto invalid_rate;
++		break;
+ 	default:
+ 		goto invalid_rate;
+ 	}
+@@ -1144,19 +1224,53 @@
+ 	return FALSE;
+ }
+ 
++/* Given a BSS index,
++ * return the band index bitmap of the MLD the BSS affiliated to.
++ * LLS can collect the statistics data from [i] with the bitmap set BIT(i).
++ */
++static uint8_t bandMaskByBssIdx(struct ADAPTER *prAdapter, uint8_t bss_idx)
++{
++	struct BSS_INFO *prBssInfo = GET_BSS_INFO_BY_INDEX(prAdapter, bss_idx);
++	uint8_t ucHwBandIdxBitmap = 0;
++	struct WIFI_VAR *prWifiVar = &prAdapter->rWifiVar;
++#if (defined CFG_SUPPORT_802_11BE_MLO && CFG_SUPPORT_802_11BE_MLO == 1)
++	struct MLD_BSS_INFO *prMldBssInfo;
++#endif
++
++	if (!prBssInfo) {
++		if (prWifiVar->fgLinkStatsDump)
++			DBGLOG(REQ, WARN, "prBssInfo == NULL for bss_idx=%u\n",
++					bss_idx);
++		return 0;
++	}
++
++	if (prBssInfo->eBand < ENUM_BAND_NUM)
++		ucHwBandIdxBitmap = BIT(prBssInfo->eBand);
++
++#if (defined CFG_SUPPORT_802_11BE_MLO && CFG_SUPPORT_802_11BE_MLO == 1)
++	prMldBssInfo = mldBssGetByBss(prAdapter, prBssInfo);
++	if (prMldBssInfo)
++		ucHwBandIdxBitmap |= prMldBssInfo->ucHwBandBitmap;
++#endif
++
++	return ucHwBandIdxBitmap;
++}
++
+ /**
+- * STATS_LLS_WIFI_IFACE_STAT
+- *     ...
+- *     STATS_LLS_WMM_AC_STAT ac[STATS_LLS_WIFI_AC_MAX] *rx_mpdu
+- *     num_peers
+- *     --------------------------
+- *     STATS_LLS_PEER_INFO[] <- up to 27
+- *          ...
+- *          num_rate
+- *          STATS_LLS_RATE_STAT[] <- up to 200 () *rx_mpdu
++ * fill_peer_info() - Collect the associated peer info in the given BSS
++ *
++ * @dst: pointing to destination buffer to write STATS_LLS_PEER_INFO.
++ * @src: pointer to EMI holding PEER_INFO_RATE_STAT[CFG_STA_REC_NUM]
++ * @num_peers: num_peers in upper layer structure before STATS_LLS_PEER_INFO[],
++ *	       indicating the number of STATS_LLS_PEER_INFO immediately
++ *	       following at the structure.
++ * @prAdapter: adapter pointer to look up required information
++ * @bss_idx: BSS index of the queried link
++ *
++ * Traverse all reported starec in EMI and collect by matching the BSS index.
+  */
+-uint32_t fill_peer_info(uint8_t *dst, struct PEER_INFO_RATE_STAT *src,
+-		uint32_t *num_peers, struct ADAPTER *prAdapter)
++static uint32_t fill_peer_info(uint8_t *dst, struct PEER_INFO_RATE_STAT *src,
++		uint32_t *num_peers, struct ADAPTER *prAdapter, uint8_t bss_idx)
+ {
+ 	struct STATS_LLS_PEER_INFO *dst_peer;
+ 	struct STATS_LLS_PEER_INFO *src_peer;
+@@ -1170,6 +1284,7 @@
+ 	int32_t ofdm_idx;
+ 	int32_t cck_idx;
+ 	uint32_t rxMpduCount;
++	struct STATS_LLS_PEER_INFO peer_info = {0};
+ 
+ 	*num_peers = 0;
+ 	for (i = 0; i < CFG_STA_REC_NUM; i++, src++) {
+@@ -1177,23 +1292,31 @@
+ 		if (src_peer->type >= STATS_LLS_WIFI_PEER_INVALID)
+ 			continue;
+ 
++		kalMemCopyFromIo(&peer_info, src_peer,
++				sizeof(struct STATS_LLS_PEER_INFO));
++
++		DBGLOG(REQ, TRACE, "Peer MAC: " MACSTR,
++				MAC2STR(peer_info.peer_mac_address));
++		sta_rec = find_peer_starec(prAdapter, &peer_info);
++		if (!sta_rec) {
++			if (prWifiVar->fgLinkStatsDump)
++				DBGLOG(REQ, WARN, "MAC not found: " MACSTR,
++					MAC2STR(peer_info.peer_mac_address));
++			continue;
++		}
++
++		if (prAdapter->ucLinkStatsBssNum == BSSID_NUM &&
++		    sta_rec->ucBssIndex != bss_idx)
++			continue; /* Not a collecting one */
++
+ 		if (prWifiVar->fgLinkStatsDump)
+-			DBGLOG(REQ, INFO, "Peer=%u type=%u", i, src_peer->type);
++			DBGLOG(REQ, INFO, "Peer=%u type=%u", i, peer_info.type);
+ 
+ 		(*num_peers)++;
+ 		dst_peer = (struct STATS_LLS_PEER_INFO *)dst;
+-
+-		kalMemCopyFromIo(dst_peer, src_peer,
+-				sizeof(struct STATS_LLS_PEER_INFO));
++		*dst_peer = peer_info;
+ 
+-		DBGLOG(REQ, TRACE, "Peer MAC: " MACSTR,
+-				MAC2STR(dst_peer->peer_mac_address));
+-		sta_rec = find_peer_starec(prAdapter, dst_peer);
+-		if (sta_rec == NULL && prWifiVar->fgLinkStatsDump) {
+-			DBGLOG(REQ, WARN, "MAC not found: " MACSTR,
+-					MAC2STR(dst_peer->peer_mac_address));
+-		}
+-		if (src_peer->type == STATS_LLS_WIFI_PEER_AP) {
++		if (dst_peer->type == STATS_LLS_WIFI_PEER_AP) {
+ 			struct STATS_LLS_PEER_AP_REC *prPeerApRec = NULL;
+ 
+ 			for (j = 0, prPeerApRec = prAdapter->rPeerApRec;
+@@ -1210,7 +1333,7 @@
+ 
+ 		if (prWifiVar->fgLinkStatsDump)
+ 			dumpLinkStatsPeerInfo(dst_peer, i);
+-		dst += sizeof(struct STATS_LLS_PEER_INFO);
++		dst += offsetof(struct STATS_LLS_PEER_INFO, rate_stats);
+ 
+ 		dst_peer->num_rate = 0;
+ 		dst_rate = (struct STATS_LLS_RATE_STAT *)dst;
+@@ -1225,8 +1348,8 @@
+ 
+ 			if (!isValidRate(src_rate, ofdm_idx, cck_idx))
+ 				continue;
+-			rxMpduCount = receivedMpduCount(sta_rec, src_rate,
+-					ofdm_idx >= 0 ? ofdm_idx : 0,
++			rxMpduCount = receivedMpduCount(sta_rec,
++					src_rate, ofdm_idx >= 0 ? ofdm_idx : 0,
+ 					cck_idx >= 0 ? cck_idx : 0);
+ 			if (src_rate->tx_mpdu || src_rate->mpdu_lost ||
+ 			    src_rate->retries || rxMpduCount) {
+@@ -1256,6 +1379,40 @@
+ 	return dst - orig;
+ }
+ 
++static void sum_ac_rx_mpdu(struct STATS_LLS_WMM_AC_STAT ac[],
++		struct BSS_INFO *prBssInfo)
++{
++	uint32_t *pu4RxMpduAc;
++	uint8_t i = 0;
++
++	pu4RxMpduAc = prBssInfo->u4RxMpduAc;
++	for (i = 0; i < STATS_LLS_WIFI_AC_MAX; i++)
++		ac[i].rx_mpdu += pu4RxMpduAc[i];
++}
++
++#if AOSP_LLS_V1_SINGLE_INTERFACE /* For legacy Android S/T */
++static void fill_iface_ac_mpdu(struct ADAPTER *prAdapter, uint8_t bss_idx,
++	struct STATS_LLS_WIFI_IFACE_STAT *iface)
++{
++	struct BSS_INFO *prBssInfo;
++	uint32_t i;
++
++	if (prAdapter->ucLinkStatsBssNum == BSSID_NUM) {
++		prBssInfo = GET_BSS_INFO_BY_INDEX(prAdapter, bss_idx);
++
++		if (prBssInfo)
++			sum_ac_rx_mpdu(iface->ac, prBssInfo);
++	} else {
++		/* FW report only one record, all data are summed up into one */
++		for (i = 0; i < MAX_BSSID_NUM + 1; i++) {
++			prBssInfo = GET_BSS_INFO_BY_INDEX(prAdapter, i);
++			if (!prBssInfo)
++				continue;
++
++			sum_ac_rx_mpdu(iface->ac, prBssInfo);
++		}
++	}
++}
+ 
+ /**
+  * STATS_LLS_WIFI_IFACE_STAT
+@@ -1268,64 +1425,311 @@
+  *          num_rate
+  *          STATS_LLS_RATE_STAT[] <- up to 200 () *rx_mpdu
+  */
+-uint32_t fill_iface(uint8_t *dst, struct HAL_LLS_FULL_REPORT *src,
+-		struct ADAPTER *prAdapter)
++static uint32_t fill_iface(uint8_t *dst, struct HAL_LLS_FW_REPORT *src,
++		struct ADAPTER *prAdapter, uint8_t bss_idx)
+ {
+ 	struct STATS_LLS_WIFI_IFACE_STAT *iface;
+ 	uint8_t *orig = dst;
++	uint8_t ac = 0;
++	uint32_t iface_offset = bss_idx;
+ 
+-	kalMemCopyFromIo(dst, src, sizeof(struct STATS_LLS_WIFI_IFACE_STAT));
++	if (prAdapter->ucLinkStatsBssNum == 1)
++		iface_offset = 0;
++	kalMemCopyFromIo(dst, &src->iface[iface_offset],
++			sizeof(struct STATS_LLS_WIFI_IFACE_STAT));
+ 	iface = (struct STATS_LLS_WIFI_IFACE_STAT *)dst;
+ 
+-	iface->ac[STATS_LLS_WIFI_AC_VO].rx_mpdu =
+-				prAdapter->u4RxMpduAc[STATS_LLS_WIFI_AC_VO];
+-	iface->ac[STATS_LLS_WIFI_AC_VI].rx_mpdu =
+-				prAdapter->u4RxMpduAc[STATS_LLS_WIFI_AC_VI];
+-	iface->ac[STATS_LLS_WIFI_AC_BE].rx_mpdu =
+-				prAdapter->u4RxMpduAc[STATS_LLS_WIFI_AC_BE];
+-	iface->ac[STATS_LLS_WIFI_AC_BK].rx_mpdu =
+-				prAdapter->u4RxMpduAc[STATS_LLS_WIFI_AC_BK];
++	fill_iface_ac_mpdu(prAdapter, bss_idx, iface);
+ 
+ 	if (prAdapter->rWifiVar.fgLinkStatsDump) {
+-		int i = 0;
+-
+ 		dumpLinkStatsIface(iface);
+-		for (i = 0; i < STATS_LLS_WIFI_AC_MAX; i++)
+-			dumpLinkStatsAc(iface->ac, i);
++		for (ac = 0; ac < STATS_LLS_WIFI_AC_MAX; ac++)
++			dumpLinkStatsAc(iface->ac, ac);
+ 	}
+-	dst += sizeof(struct STATS_LLS_WIFI_IFACE_STAT);
++	dst += offsetof(struct STATS_LLS_WIFI_IFACE_STAT, peer_info);
+ 
+ 	dst += fill_peer_info(dst, src->peer_info,
+-			&iface->num_peers, prAdapter);
++			&iface->num_peers, prAdapter, bss_idx);
+ 
+ 	DBGLOG(REQ, TRACE, "advanced %u bytes, %u peers",
+ 			dst - orig, iface->num_peers);
++
++	return dst - orig;
++}
++#endif /* AOSP_LLS_V1_SINGLE_INTERFACE */
++
++/**
++ * Copy per-AC RX MPDU count stored in the BSS info with the given bss_idx.
++ */
++static void fill_ml_link_ac_mpdu(struct ADAPTER *prAdapter, uint8_t bss_idx,
++	struct STATS_LLS_WIFI_LINK_STAT *link)
++{
++	struct BSS_INFO *prBssInfo;
++	uint32_t i;
++
++	if (prAdapter->ucLinkStatsBssNum == 1) {
++		/* FW report only one record, all data are summed up into one */
++		for (i = 0; i < MAX_BSSID_NUM + 1; i++) {
++			prBssInfo = GET_BSS_INFO_BY_INDEX(prAdapter, i);
++			if (!prBssInfo)
++				continue;
++
++			sum_ac_rx_mpdu(link->ac, prBssInfo);
++		}
++	} else {
++		/* ASSERT(prAdapter->ucLinkStatsBssNum == BSSID_NUM) */
++		prBssInfo = GET_BSS_INFO_BY_INDEX(prAdapter, bss_idx);
++		if (!prBssInfo)
++			return;
++
++		sum_ac_rx_mpdu(link->ac, prBssInfo);
++	}
++}
++
++static uint32_t find_bss_group(struct ADAPTER *prAdapter, uint8_t bss_idx)
++{
++	uint32_t bss_idx_bitmap = 0;
++
++#if (defined CFG_SUPPORT_802_11BE_MLO && CFG_SUPPORT_802_11BE_MLO == 1)
++	struct MLD_BSS_INFO *prMldBssInfo;
++	struct BSS_INFO *prBssInfo;
++	struct BSS_INFO *bss;
++
++	do {
++		bss_idx_bitmap |= BIT(bss_idx);
++		prBssInfo = GET_BSS_INFO_BY_INDEX(prAdapter, bss_idx);
++		if (!prBssInfo)
++			break;
++
++		prMldBssInfo = mldBssGetByBss(prAdapter, prBssInfo);
++		if (prMldBssInfo) {
++			LINK_FOR_EACH_ENTRY(bss, &prMldBssInfo->rBssList,
++					rLinkEntryMld, struct BSS_INFO) {
++				bss_idx_bitmap |= BIT(bss->ucBssIndex);
++			}
++		}
++	} while (0);
++#else
++	bss_idx_bitmap |= BIT(bss_idx);
++#endif
++	return bss_idx_bitmap;
++}
++
++/**
++ * fill_ml_link_stats() - Collect the associated link info with the bss_idx
++ *
++ * @dst: pointing to destination buffer to write STATS_LLS_WIFI_LINK_STAT
++ * @src: pointer to EMI holding STATS_LLS_WIFI_IFACE_STAT[IFACE_NUM]
++ * @num_links: num_links in upper layer structure before
++ *	       STATS_LLS_WIFI_LINK_STAT[], indicating the number of
++ *	       STATS_LLS_WIFI_LINK_STAT immediately following at the structure.
++ * @prAdapter: adapter pointer to look up required information
++ * @bbss_idx: the BSS index associated to the queried netdev
++ */
++static uint32_t fill_ml_link_stats(uint8_t *dst, struct HAL_LLS_FW_REPORT *src,
++		int32_t *num_links, struct ADAPTER *prAdapter, uint8_t bss_idx)
++{
++	int max_bss_idx = prAdapter->ucLinkStatsBssNum;
++	struct BSS_INFO *prBssInfo;
++	struct STATS_LLS_WIFI_LINK_STAT *link;
++	uint8_t *orig = dst;
++	int b;
++	int bss_idx_bitmap;
++	static const enum nl80211_band band[BAND_NUM] = {
++		[BAND_2G4] = NL80211_BAND_2GHZ,
++		[BAND_5G] = NL80211_BAND_5GHZ,
++#if (CFG_SUPPORT_WIFI_6G == 1)
++		[BAND_6G] = NL80211_BAND_6GHZ,
++#endif
++		};
++
++	link = (struct STATS_LLS_WIFI_LINK_STAT *)dst;
++
++	*num_links = 0;
++	bss_idx_bitmap = find_bss_group(prAdapter, bss_idx);
++
++	for (b = 0; b < max_bss_idx && b < IFACE_NUM; b++) {
++		if (!(bss_idx_bitmap & BIT(b)))
++			continue;
++
++		prBssInfo = GET_BSS_INFO_BY_INDEX(prAdapter, b);
++		if (!prBssInfo) {
++			DBGLOG(REQ, WARN, "BSS index %u no BSS found\n", b);
++			continue;
++		}
++
++		(*num_links)++;
++
++		link = (struct STATS_LLS_WIFI_LINK_STAT *)dst;
++
++#if (defined CFG_SUPPORT_802_11BE_MLO && CFG_SUPPORT_802_11BE_MLO == 1) || \
++	defined(CFG_SUPPORT_UNIFIED_COMMAND)
++		link->link_id = prBssInfo->ucLinkIndex;
++#endif
++		link->state = WIFI_LINK_STATE_IN_USE;
++		link->radio = prBssInfo->eBand;
++		link->frequency = ieee80211_channel_to_frequency(
++					prBssInfo->ucPrimaryChannel,
++					band[prBssInfo->eBand]);
++
++		/* Copy link stats data for this BSS[b]
++		 * src structure: STATS_LLS_WIFI_IFACE_STAT
++		 * dst structure: STATS_LLS_WIFI_LINK_STAT
++		 *  1. beacon_rx, special handling, since there's a hole between
++		 *     beacon_rx and average_tsf_offset
++		 *  2. average_tsf_offset, ..., rssi_ack, before ac[]
++		 *  3. ac[] followed by num_peers,
++		 */
++		/* 1. beacon_rx, special handling */
++		kalMemCopyFromIo(&link->beacon_rx, &src->iface[b].beacon_rx,
++			sizeof(uint32_t));
++		if (prAdapter->rWifiVar.fgLinkStatsDump) {
++			DBGLOG(REQ, INFO,
++			       "Copy beacon_rx to ac of %zu bytes",
++			       sizeof(uint32_t));
++		}
++
++		/*  2. average_tsf_offset, ..., rssi_ack, before ac[] */
++		kalMemCopyFromIo(&link->average_tsf_offset,
++				&src->iface[b].average_tsf_offset,
++			offsetof(struct STATS_LLS_WIFI_IFACE_STAT, ac) -
++			offsetof(struct STATS_LLS_WIFI_IFACE_STAT,
++				average_tsf_offset));
++
++		if (prAdapter->rWifiVar.fgLinkStatsDump) {
++			DBGLOG(REQ, INFO,
++			       "Copy average_tsf_offset to ac of %zu bytes",
++			       offsetof(struct STATS_LLS_WIFI_IFACE_STAT, ac) -
++			       offsetof(struct STATS_LLS_WIFI_IFACE_STAT,
++			       average_tsf_offset));
++		}
++
++		/*  3. ac[] followed by num_peers */
++		kalMemCopyFromIo(&link->ac, &src->iface[b].ac,
++				sizeof(link->ac));
++		if (prAdapter->rWifiVar.fgLinkStatsDump) {
++			DBGLOG(REQ, INFO, "Copy ac of %zu bytes",
++			       sizeof(link->ac));
++		}
++
++		fill_ml_link_ac_mpdu(prAdapter, b, link);
++		link->time_slicing_duty_cycle_precent =
++			src->iface[b].info.time_slicing_duty_cycle_percent;
++
++		if (prAdapter->rWifiVar.fgLinkStatsDump) {
++			int ac;
++
++			dumpLinkStatsLink(link, b);
++			for (ac = 0; ac < STATS_LLS_WIFI_AC_MAX; ac++)
++				dumpLinkStatsAc(link->ac, ac);
++		}
++		link->num_peers = 0;
++		dst += offsetof(struct STATS_LLS_WIFI_LINK_STAT, peer_info);
++
++		/* dst is pointing to STATS_LLS_WIFI_LINK_STAT.peer_info[0];
++		 * increment link->num_peers when appending peer_info records.
++		 */
++		dst += fill_peer_info(dst, src->peer_info,
++				&link->num_peers, prAdapter, bss_idx);
++	}
++	DBGLOG(REQ, TRACE, "advanced %td bytes, %u links",
++			dst - orig, *num_links);
+ 	return dst - orig;
+ }
+ 
++/**
++ * STATS_LLS_WIFI_IFACE_ML_STAT
++ *     iface
++ *     info: mode, mac_addr, ..., country_str, time_slicing_duty_cycle_percent
++ *     ...
++ *     num_links
++ *         link_id, radio, frequency
++ *         beacon_rx, average_tsf_ofset, ...,
++ *         STATS_LLS_WMM_AC_STAT ac[STATS_LLS_WIFI_AC_MAX] *rx_mpdu
++ *         num_peers
++ *         --------------------------
++ *         STATS_LLS_PEER_INFO[] <- up to 27
++ *             ...
++ *                 num_rate
++ *                 STATS_LLS_RATE_STAT[] <- up to 200 () *rx_mpdu
++ *
++ * TODO: Sum up time_slicing_duty_cycle_percent from all BSSes?
++ */
++uint32_t fill_ml_iface(uint8_t *dst, struct HAL_LLS_FW_REPORT *src,
++		struct ADAPTER *prAdapter, uint8_t bss_idx)
++{
++	struct STATS_LLS_WIFI_IFACE_ML_STAT *ml_iface;
++	uint8_t *orig = dst;
++
++	_Static_assert(offsetof(struct STATS_LLS_WIFI_IFACE_ML_STAT, num_links)
++			==
++			offsetof(struct STATS_LLS_WIFI_IFACE_STAT, beacon_rx),
++			"iface + info size not matched");
++
++	if (bss_idx >= prAdapter->ucLinkStatsBssNum) {
++		DBGLOG(REQ, WARN, "bss_idx out of range, %u >= %u",
++				bss_idx, prAdapter->ucLinkStatsBssNum);
++		return 0;
++	}
++
++	/* copy the netdev level common part from iface to
++	 * info->time_slicing_duty_cycle_percent, right before num_links
++	 */
++	ml_iface = (struct STATS_LLS_WIFI_IFACE_ML_STAT *)dst;
++	kalMemCopyFromIo(dst, &src->iface[bss_idx],
++		offsetof(struct STATS_LLS_WIFI_IFACE_ML_STAT, num_links));
++	dst += offsetof(struct STATS_LLS_WIFI_IFACE_ML_STAT, num_links);
++	DBGLOG(REQ, INFO,
++		"Copy STATS_LLS_WIFI_IFACE_ML_STAT [%u] up to num_links of %zu bytes",
++		bss_idx,
++		offsetof(struct STATS_LLS_WIFI_IFACE_ML_STAT, num_links));
++
++	if (prAdapter->rWifiVar.fgLinkStatsDump)
++		dumpLinkStatsMultiLinkIface(bss_idx, ml_iface);
++
++	/* dst is pointing to STATS_LLS_WIFI_IFACE_ML_STAT.links[0];
++	 * increment ml_iface->num_links when appending link records.
++	 */
++	ml_iface->num_links = 0;
++
++	dst = (uint8_t *)&ml_iface->links;
++	dst += fill_ml_link_stats(dst, src, &ml_iface->num_links,
++			prAdapter, bss_idx);
++
++	return dst - orig;
++}
+ 
+ /**
+- * STATS_LLS_WIFI_RADIO_STAT[] <-- 2
++ * STATS_LLS_WIFI_RADIO_STAT[] <-- check by eBand considering MLO as well
+  *     ...
+  *     num_channels
+  *     STATS_LLS_CHANNEL_STAT[] <-- up to 46 (2.4 + 5G; 6G will be more)
+  */
+-uint32_t fill_radio(uint8_t *dst, struct WIFI_RADIO_CHANNEL_STAT *src,
+-		uint32_t num_radio, struct ADAPTER *prAdapter)
++static uint32_t fill_radio(uint8_t *dst, struct WIFI_RADIO_CHANNEL_STAT *src,
++		uint32_t num_radio, struct ADAPTER *prAdapter, uint8_t band_map)
+ {
+ 	struct STATS_LLS_WIFI_RADIO_STAT *radio;
+ 	struct STATS_LLS_CHANNEL_STAT *src_ch;
+ 	struct STATS_LLS_CHANNEL_STAT *dst_ch;
+ 	struct WIFI_VAR *prWifiVar = &prAdapter->rWifiVar;
+-
+ 	uint8_t *orig = dst;
+ 	uint32_t i, j;
+ 
++
++	*(uint32_t *)orig = 0;
++	dst += sizeof(uint32_t);
++
+ 	for (i = 0; i < num_radio; i++, src++) {
++		if ((band_map & BIT(i)) == 0)
++			continue;
++
++		(*(uint32_t *)orig)++;
++
+ 		kalMemCopyFromIo(dst, src,
+ 				sizeof(struct STATS_LLS_WIFI_RADIO_STAT));
+ 		radio = (struct STATS_LLS_WIFI_RADIO_STAT *)dst;
+-		dst += sizeof(struct STATS_LLS_WIFI_RADIO_STAT);
++		radio->num_tx_levels = TX_POWER_LEVELS;
++		dst += offsetof(struct STATS_LLS_WIFI_RADIO_STAT, channels);
+ 
+ 		if (prWifiVar->fgLinkStatsDump)
+ 			dumpLinkStatsRadio(radio, i);
+@@ -1354,6 +1758,81 @@
+ 	DBGLOG(REQ, TRACE, "advanced %u bytes", dst - orig);
+ 	return dst - orig;
+ }
++
++/**
++ * Stored in pu4TxTimePerLevels in (uint32_t * size).
++ */
++static uint32_t fill_power_levels(uint8_t *dst, struct ADAPTER *prAdapter,
++		uint32_t num_radio, uint8_t band_map,
++		uint32_t *pu4TxTimePerLevels, uint32_t u4TxTimePerLevelsSize)
++{
++	uint8_t *orig = dst;
++	uint8_t i = 0;
++
++	if (!pu4TxTimePerLevels)
++		return 0;
++
++	for (i = 0; i < num_radio; i++) {
++		if ((band_map & BIT(i)) == 0)
++			continue;
++
++		kalMemCopyFromIo(dst, pu4TxTimePerLevels + TX_POWER_LEVELS * i,
++				sizeof(uint32_t) * TX_POWER_LEVELS);
++
++		if (prAdapter->rWifiVar.fgLinkStatsDump)
++			dumpLinkStatsPowerLevels(dst, i,
++					sizeof(uint32_t) * TX_POWER_LEVELS);
++		dst += sizeof(uint32_t) * TX_POWER_LEVELS;
++	}
++
++	DBGLOG(REQ, INFO, "Copy power level %u bytes", dst - orig);
++
++	return dst - orig;
++}
++
++/* Copy and dump source buffer data for debugging */
++static void dumpSourceBufferData(struct ADAPTER *prAdapter, uint8_t ucBssIdx,
++			struct HAL_LLS_FW_REPORT *src)
++{
++	int i;
++	struct PEER_INFO_RATE_STAT *peer = (struct PEER_INFO_RATE_STAT *)
++					   &prAdapter->rLinkStatsDestBuffer;
++
++	if (!prAdapter->rWifiVar.fgLinkStatsDump)
++		return;
++
++	DBGLOG(REQ, INFO, "LLS iface[bssidx=%u]\n", ucBssIdx);
++
++	kalMemCopyFromIo(&prAdapter->rLinkStatsDestBuffer,
++			&src->iface[ucBssIdx],
++			sizeof(struct STATS_LLS_WIFI_IFACE_STAT));
++	DBGLOG_HEX(REQ, INFO, &prAdapter->rLinkStatsDestBuffer,
++			sizeof(struct STATS_LLS_WIFI_IFACE_STAT));
++
++	for (i = 0; i < CFG_STA_REC_NUM; i++) {
++		kalMemCopyFromIo(&prAdapter->rLinkStatsDestBuffer,
++				&src->peer_info[i],
++				sizeof(struct PEER_INFO_RATE_STAT));
++		if (peer->peer.type >= STATS_LLS_WIFI_PEER_INVALID) {
++			DBGLOG(REQ, INFO, "Peer[%u].type = %u\n",
++					i, peer->peer.type);
++			continue;
++		}
++
++		DBGLOG(REQ, INFO, "Dump peer_info[%u]\n", i);
++		DBGLOG_HEX(REQ, INFO, &prAdapter->rLinkStatsDestBuffer,
++				sizeof(struct PEER_INFO_RATE_STAT));
++	}
++
++	for (i = 0; i < ENUM_BAND_NUM; i++) {
++		DBGLOG(REQ, INFO, "Dump radio[%u]\n", i);
++		kalMemCopyFromIo(&prAdapter->rLinkStatsDestBuffer,
++			&src->radio[i],
++			sizeof(struct WIFI_RADIO_CHANNEL_STAT));
++		DBGLOG_HEX(REQ, INFO, &prAdapter->rLinkStatsDestBuffer,
++				sizeof(struct WIFI_RADIO_CHANNEL_STAT));
++	}
++}
+ #endif /* CFG_SUPPORT_LLS */
+ 
+ 
+@@ -1377,32 +1856,45 @@
+ 	struct sk_buff *skb = NULL;
+ 
+ 	uint8_t *ptr = NULL;
+-	struct HAL_LLS_FULL_REPORT *src;
++	struct HAL_LLS_FW_REPORT *src;
++	uint8_t ucBssIdx;
++	uint8_t band_hint = 0xFF; /* report all band/radio info */
++	uint8_t band_map = 0;
+ 
+-	ASSERT(wiphy);
+-	ASSERT(wdev);
++	_Static_assert(sizeof(struct HAL_LLS_FULL_REPORT) >=
++		       sizeof(struct HAL_LLS_FW_REPORT),
++		       "HAL_LLS_FULL_REPORT too small");
++	_Static_assert(sizeof(struct HAL_LLS_FULL_REPORT_V2) >=
++		       sizeof(struct HAL_LLS_FW_REPORT),
++		       "HAL_LLS_FULL_REPORT_V2 too small");
++
+ 	WIPHY_PRIV(wiphy, prGlueInfo);
+ 	if (!prGlueInfo || prGlueInfo->u4ReadyFlag == 0) {
+ 		DBGLOG(REQ, WARN, "driver is not ready\n");
+ 		return -EFAULT;
+ 	}
+ 
+-	do {
+-		prAdapter = prGlueInfo->prAdapter;
++	prAdapter = prGlueInfo->prAdapter;
+ 
+-		if (!prAdapter->rWifiVar.fgStatsLlsEn) {
+-			DBGLOG(REQ, TRACE, "LLS disabled");
+-			rStatus = -EOPNOTSUPP;
+-			break;
+-		}
++#if (defined CFG_SUPPORT_CONNAC3X && CFG_SUPPORT_CONNAC3X == 1)
++	ucBssIdx = wlanGetBssIdx(wdev->netdev);
++	if (ucBssIdx >= MAX_BSSID_NUM) {
++		DBGLOG(REQ, ERROR, "Invalid BSS Index ucBssIdx=%u\n", ucBssIdx);
++		return -EFAULT;
++	}
++#else
++	ucBssIdx = 0; /* legacy FW only report 1 iface structure */
++#endif
+ 
+-		src = prAdapter->pucLinkStatsSrcBufferAddr;
+-		if (!src) {
+-			DBGLOG(REQ, ERROR, "EMI mapping not done");
+-			rStatus = -EFAULT;
+-			break;
+-		}
++	src = prAdapter->pucLinkStatsSrcBufferAddr;
++	if (!src) {
++		DBGLOG(REQ, ERROR, "EMI mapping not done");
++		return -EFAULT;
++	}
++
++	dumpSourceBufferData(prAdapter, ucBssIdx, src);
+ 
++	do {
+ 		buf = (uint8_t *)&prAdapter->rLinkStatsDestBuffer;
+ 		kalMemZero(buf, sizeof(prAdapter->rLinkStatsDestBuffer));
+ 
+@@ -1438,14 +1930,41 @@
+ 			break;
+ 		}
+ 
+-		/* Fill returning buffer */
++		DBGLOG(REQ, INFO, "llstats_get_info(bss=%u)", ucBssIdx);
++		/* Fill returning buffer from shared EMI address(src) */
+ 		ptr = buf;
+-		ptr += fill_iface(ptr, src, prAdapter);
+ 
+-		*(uint32_t *)ptr = ENUM_BAND_NUM;
+-		ptr += sizeof(uint32_t);
++#if AOSP_LLS_V1_SINGLE_INTERFACE /* leave legacy code here, need to verify */
++		ptr += fill_iface(ptr, src, prAdapter, ucBssIdx);
++#else /* multiple links, Android U goes here, support connac2/3 */
++		ptr += fill_ml_iface(ptr, src, prAdapter, ucBssIdx);
++#endif
++
++		/* Set band_hint = 0x00 here to collect band/radio
++		 * by Bss HW band index.
++		 * However, before associated to specific AP,
++		 * there will be no band associated to the queried BSS,
++		 * which does not match what AOSP HAL expects.
++		 */
++		band_map = bandMaskByBssIdx(prAdapter, ucBssIdx);
++		band_map |= band_hint;
++		if (!band_map || prAdapter->rWifiVar.fgLinkStatsDump) {
++			DBGLOG(REQ, INFO,
++				"%s bss_idx=%u, hint=0x%02x, band_map=0x%02x\n",
++				band_map ? "" : "No band associated",
++				ucBssIdx, band_hint, band_map);
++			if (band_map == 0) {
++				rStatus = -ENOTCONN;
++				break;
++			}
++		}
++
++		ptr += fill_radio(ptr, src->radio, ENUM_BAND_NUM,
++				prAdapter, band_map);
+ 
+-		ptr += fill_radio(ptr, src->radio, ENUM_BAND_NUM, prAdapter);
++		ptr += fill_power_levels(ptr, prAdapter, ENUM_BAND_NUM,
++				band_map, prAdapter->pu4TxTimePerLevels,
++				prAdapter->u4TxTimePerLevelsSize);
+ 		DBGLOG(REQ, INFO, "Collected %u bytes for LLS", ptr - buf);
+ 
+ 		skb = cfg80211_vendor_cmd_alloc_reply_skb(wiphy, ptr - buf);
+diff --git a/os/linux/gl_wext_priv.c b/os/linux/gl_wext_priv.c
+index a483b48..2ee11b0 100644
+--- a/os/linux/gl_wext_priv.c
++++ b/os/linux/gl_wext_priv.c
+@@ -7023,8 +7023,8 @@
+ 					IN u_int8_t fgResetCnt)
+ {
+ 	int32_t i4BytesWritten = 0;
+-	uint32_t u4RxVector0 = 0, u4RxVector2 = 0, u4RxVector3 = 0,
+-		 u4RxVector4 = 0;
++	uint32_t au4RxV[5] = {0};
++	uint32_t *prRxV = NULL;
+ 	uint8_t ucStaIdx, ucWlanIndex = 0, cbw;
+ 	u_int8_t fgWlanIdxFound = TRUE, fgSkipRxV = FALSE;
+ 	uint32_t u4FAGCRssiWBR0, u4FAGCRssiIBR0;
+@@ -7068,10 +7068,11 @@
+ 	if (fgWlanIdxFound) {
+ 		if (wlanGetStaIdxByWlanIdx(prAdapter, ucWlanIndex, &ucStaIdx)
+ 		    == WLAN_STATUS_SUCCESS) {
+-			u4RxVector0 = prAdapter->arStaRec[ucStaIdx].u4RxVector0;
+-			u4RxVector2 = prAdapter->arStaRec[ucStaIdx].u4RxVector2;
+-			u4RxVector3 = prAdapter->arStaRec[ucStaIdx].u4RxVector3;
+-			u4RxVector4 = prAdapter->arStaRec[ucStaIdx].u4RxVector4;
++			prRxV = prAdapter->arStaRec[ucStaIdx].au4RxV;
++			au4RxV[0] = prRxV[0];
++			au4RxV[2] = prRxV[2];
++			au4RxV[3] = prRxV[3];
++			au4RxV[4] = prRxV[4];
+ 		} else{
+ 			fgSkipRxV = TRUE;
+ 		}
+@@ -7236,8 +7237,8 @@
+ 			htonl(g_HqaRxStat.OFDM_FCS_Err_Band1));
+ 
+ 	if (!fgSkipRxV) {
+-		u4FAGCRssiIBR0 = (u4RxVector2 & BITS(16, 23)) >> 16;
+-		u4FAGCRssiWBR0 = (u4RxVector2 & BITS(24, 31)) >> 24;
++		u4FAGCRssiIBR0 = (au4RxV[2] & BITS(16, 23)) >> 16;
++		u4FAGCRssiWBR0 = (au4RxV[2] & BITS(24, 31)) >> 24;
+ 
+ 		i4BytesWritten += kalSnprintf(pcCommand + i4BytesWritten,
+ 			i4TotalLen - i4BytesWritten,
+@@ -7294,14 +7295,14 @@
+ 			"%-20s%s%d\n", "Driver RX Cnt1", " = ",
+ 			htonl(g_HqaRxStat.DriverRxCount1));
+ #endif
+-		u4Value = (u4RxVector0 & BITS(12, 14)) >> 12;
++		u4Value = (au4RxV[0] & BITS(12, 14)) >> 12;
+ 		if (u4Value == 0) {
+-			u4Foe = (((u4RxVector4 & BITS(7, 31)) >> 7) & 0x7ff);
+-			u4Foe = (u4Foe * 1000)>>11;
++			u4Foe = ((au4RxV[4] & BITS(7, 31)) >> 7) & 0x7ff;
++			u4Foe = (u4Foe * 1000) >> 11;
+ 		} else{
+-			cbw = ((u4RxVector0 & BITS(15, 16)) >> 15);
++			cbw = (au4RxV[0] & BITS(15, 16)) >> 15;
+ 			foe_const = ((1 << (cbw + 1)) & 0xf) * 10000;
+-			u4Foe = (((u4RxVector4 & BITS(7, 31)) >> 7) & 0xfff);
++			u4Foe = ((au4RxV[4] & BITS(7, 31)) >> 7) & 0xfff;
+ 			u4Foe = (u4Foe * foe_const) >> 15;
+ 		}
+ 
+@@ -7312,29 +7313,29 @@
+ 		i4BytesWritten += kalSnprintf(pcCommand + i4BytesWritten,
+ 			i4TotalLen - i4BytesWritten,
+ 			"%-20s%s%d\n", "RX SNR (dB)", " = ",
+-			(uint32_t)(((u4RxVector4 & BITS(26, 31)) >> 26) - 16));
++			(uint32_t)(((au4RxV[4] & BITS(26, 31)) >> 26) - 16));
+ 
+ 		i4BytesWritten += kalSnprintf(pcCommand + i4BytesWritten,
+ 			i4TotalLen - i4BytesWritten,
+ 			"%-20s%s%d\n", "uint8_t RX0", " = ",
+-			(uint32_t)(u4RxVector3 & BITS(0, 7)));
++			(uint32_t)(au4RxV[3] & BITS(0, 7)));
+ 
+ 		i4BytesWritten += kalSnprintf(pcCommand + i4BytesWritten,
+ 			i4TotalLen - i4BytesWritten,
+ 			"%-20s%s%d\n", "uint8_t RX1", " = ",
+-			(uint32_t)((u4RxVector3 & BITS(8, 15)) >> 8));
++			(uint32_t)((au4RxV[3] & BITS(8, 15)) >> 8));
+ 
+ 		i4BytesWritten += kalSnprintf(pcCommand + i4BytesWritten,
+ 			i4TotalLen - i4BytesWritten,
+ 			"%-20s%s%d\n", "uint8_t RX2", " = ",
+-			((u4RxVector3 & BITS(16, 23)) >> 16) == 0xFF ?
+-			(0) : ((uint32_t)(u4RxVector3 & BITS(16, 23)) >> 16));
++			((au4RxV[3] & BITS(16, 23)) >> 16) == 0xFF ?
++			(0) : ((uint32_t)(au4RxV[3] & BITS(16, 23)) >> 16));
+ 
+ 		i4BytesWritten += kalSnprintf(pcCommand + i4BytesWritten,
+ 			i4TotalLen - i4BytesWritten,
+ 			"%-20s%s%d\n", "uint8_t RX3", " = ",
+-			((u4RxVector3 & BITS(24, 31)) >> 24) == 0xFF ?
+-			(0) : ((uint32_t)(u4RxVector3 & BITS(24, 31)) >> 24));
++			((au4RxV[3] & BITS(24, 31)) >> 24) == 0xFF ?
++			(0) : ((uint32_t)(au4RxV[3] & BITS(24, 31)) >> 24));
+ 	} else{
+ #if 1
+ 		i4BytesWritten += kalSnprintf(pcCommand + i4BytesWritten,
+@@ -7460,7 +7461,6 @@
+ 	return i4BytesWritten;
+ }
+ 
+-
+ static int priv_driver_show_rx_stat(IN struct net_device *prNetDev,
+ 				    IN char *pcCommand, IN int i4TotalLen)
+ {
+diff --git a/os/linux/include/gl_vendor.h b/os/linux/include/gl_vendor.h
+index cae897a..fc84e98 100644
+--- a/os/linux/include/gl_vendor.h
++++ b/os/linux/include/gl_vendor.h
+@@ -117,6 +117,8 @@
+ 	(uint32_t)((((bssIdx) << 24) + ((channelBw) << 16) + \
+ 		((TxNss) << 8) + (RxNss)) & 0xffff)
+ 
++#define LLS_RADIO_STAT_MAX_TX_LEVELS 256
++
+ enum NL80211_VENDOR_FEATURES {
+ 	VENDOR_FEATURE_KEY_MGMT_OFFLOAD        = 0,
+ 	VENDOR_FEATURE_SUPPORT_HW_MODE_ANY     = 1,
+@@ -578,6 +580,13 @@
+ 	uint32_t channel;	/* channel hint */
+ };
+ 
++enum WIFI_MULTI_STA_USE_CASE {
++	WIFI_DUAL_STA_TRANSIENT_PREFER_PRIMARY = 0,
++	WIFI_DUAL_STA_NON_TRANSIENT_UNBIASED = 1,
++	WIFI_DUAL_STA_MTK_LEGACY = 15,
++};
++
++#if CFG_SUPPORT_LLS
+ #define STATS_LLS_MAX_NSS_NUM    2
+ 
+ #define STATS_LLS_CCK_NUM        4   /* 1M/2M/5.5M/11M */
+@@ -585,12 +594,14 @@
+ #define STATS_LLS_HT_NUM         16  /* MCS0~15 */
+ #define STATS_LLS_VHT_NUM        10  /* MCS0~9 */
+ #define STATS_LLS_HE_NUM         12  /* MCS0~11 */
++#define STATS_LLS_EHT_NUM        16  /* MCS0~15 */
+ 
+ #define STATS_LLS_MAX_CCK_BW_NUM  1  /* BW20 */
+ #define STATS_LLS_MAX_OFDM_BW_NUM 1  /* BW20 */
+ #define STATS_LLS_MAX_HT_BW_NUM   2  /* BW20/40 */
+ #define STATS_LLS_MAX_VHT_BW_NUM  3  /* BW20/40/80 */
+ #define STATS_LLS_MAX_HE_BW_NUM   4  /* BW20/40/80/160 */
++#define STATS_LLS_MAX_EHT_BW_NUM  5  /* BW20/40/80/160/320 */
+ 
+ #define STATS_LLS_MAX_CCK_NUM  (STATS_LLS_CCK_NUM)
+ #define STATS_LLS_MAX_OFDM_NUM (STATS_LLS_OFDM_NUM)
+@@ -600,7 +611,14 @@
+ 	(STATS_LLS_VHT_NUM * STATS_LLS_MAX_VHT_BW_NUM * STATS_LLS_MAX_NSS_NUM)
+ #define STATS_LLS_MAX_HE_NUM   \
+ 	(STATS_LLS_HE_NUM * STATS_LLS_MAX_HE_BW_NUM * STATS_LLS_MAX_NSS_NUM)
++#if (CFG_SUPPORT_802_11BE == 1)
++#define STATS_LLS_MAX_EHT_NUM   \
++	(STATS_LLS_EHT_NUM * STATS_LLS_MAX_EHT_BW_NUM * STATS_LLS_MAX_NSS_NUM)
++#else
++#define STATS_LLS_MAX_EHT_NUM   0
++#endif
+ 
++#define TX_POWER_LEVELS 256
+ 
+ #define STATS_LLS_CH_NUM_2G4 14
+ #define STATS_LLS_CH_NUM_5G 32
+@@ -618,7 +636,8 @@
+ 			    STATS_LLS_MAX_OFDM_NUM +	\
+ 			    STATS_LLS_MAX_HT_NUM +	\
+ 			    STATS_LLS_MAX_VHT_NUM +	\
+-			    STATS_LLS_MAX_HE_NUM)
++			    STATS_LLS_MAX_HE_NUM +	\
++			    STATS_LLS_MAX_EHT_NUM)
+ 
+ /**
+  * channel operating width
+@@ -691,7 +710,7 @@
+ 	int32_t radio;
+ 	uint32_t on_time;
+ 	uint32_t tx_time;
+-	uint32_t num_tx_levels; /* 0 */
++	uint32_t num_tx_levels; /* TX_POWER_LEVELS */
+ 	uint32_t *tx_time_per_levels; /* NULL */
+ 	uint32_t rx_time;
+ 	uint32_t on_time_scan;
+@@ -711,6 +730,7 @@
+ 	LLS_MODE_HT,
+ 	LLS_MODE_VHT,
+ 	LLS_MODE_HE,
++	LLS_MODE_EHT,
+ 	LLS_MODE_RESERVED,
+ };
+ 
+@@ -784,7 +804,7 @@
+ };
+ 
+ /**
+- *
++ * Link layer statistics interface information
+  * @mode: interface mode
+  * @mac_addr[6]: interface mac address (self)
+  * @state: connection state (valid for STA, CLI only)
+@@ -798,6 +818,11 @@
+  *                     slicing on a radio with one or more ifaces (i.e MCC),
+  *                     then the duty cycle assigned to this iface in %.
+  *                     If not using time slicing (i.e SCC or DBS), set to 100.
++ *
++ * This structure is common part of legacy STATS_LLS_WIFI_IFACE_STAT and
++ * multi-link STATS_LLS_WIFI_IFACE_ML_STAT.
++ *
++ * Total size = 4 + 6 (+2) + 4 + 4 + 4 + 33 + 6 + 3 + 3 + 1 = 70 bytes
+  */
+ struct WIFI_INTERFACE_LINK_LAYER_INFO {
+ 	enum ENUM_WIFI_INTERFACE_MODE mode;
+@@ -823,15 +848,6 @@
+ 	STATS_LLS_WIFI_AC_MAX = 4,
+ };
+ 
+-/* access categories */
+-enum WIFI_TRAFFIC_AC {
+-	WIFI_AC_VO = 0,
+-	WIFI_AC_VI = 1,
+-	WIFI_AC_BE = 2,
+-	WIFI_AC_BK = 3,
+-	WIFI_AC_MAX = 4,
+-};
+-
+ /* wifi peer type */
+ enum ENUM_STATS_PEER_TYPE {
+ 	STATS_LLS_WIFI_PEER_STA,
+@@ -917,7 +933,87 @@
+ };
+ 
+ /**
++ * Varioud sttes for the link
++ * @WIFI_LINK_STATE_UNKNOWN: Chip does not support reporting the state of the
++ *	link
++ * @WIFI_LINK_STATE_NOT_IN_USE: Link has not been in use since laste report.
++ *	It is placed in power save.
++ *	All management, control and data frames for the MLO connection are
++ *	carried over links. In this state the link will not listen to beacons
++ *	even in DTIM period and does not perform any GTK/IGTK/BIGTK updates but
++ *	remains associated.
++ * @WIFI_LINK_STATE_IN_USE: Link is in use. In presence of traffic,it is set to
++ *	be power active.
++ *	When the traffic stops, the link will go into power save mode and will
++ *	listen for beacons every DTIM period.
++ */
++enum wifi_link_state {
++	WIFI_LINK_STATE_UNKNOWN = 0,
++	WIFI_LINK_STATE_NOT_IN_USE = 1,
++	WIFI_LINK_STATE_IN_USE = 2,
++};
++
++/**
++ * Link statistics
++ * @link_id: (NEW) Identifier for the link.
++ * @state: (NEW) state for the link
++ * @radio: (NEW) Radio on which link stats are sampled.
++ * @frequency: (NEW) Frequency on which link is operating.
++ *
++ * @beacon_rx: access point beacon received count from connected AP
++ * @average_tsf_offset: average beacon offset encountered (beacon_TSF - TBTT)
++ *               The average_tsf_offset field is used so as to calculate the
++ *               typical beacon contention time on the channel as well may be
++ *               used to debug beacon synchronization and related power
++ *               consumption issue
++ * @leaky_ap_detected: indicate that this AP typically leaks packets
++ *                     beyond the driver guard time.
++ * @leaky_ap_avg_num_frames_leaked: average number of frame leaked by AP
++ *                                  after frame with PM bit set was ACK'ed by AP
++ * @leaky_ap_guard_time: guard time currently in force
++ *                       (when implementing IEEE power management based on
++ *                       frame control PM bit), How long driver waits before
++ *                       shutting down the radio and after receiving an ACK
++ *                       for a data frame with PM bit set)
++ * @mgmt_rx: access point mgmt frames received count from connected AP
++ *           (including Beacon)
++ * @mgmt_action_rx: action frames received count
++ * @mgmt_action_tx: action frames transmit count
++ * @rssi_mgmt: access Point Beacon and Management frames RSSI (averaged)
++ * @rssi_data: access Point Data Frames RSSI (averaged) from connected AP
++ * @rssi_ack: access Point ACK RSSI (averaged) from connected AP
++ * @ac[WIFI_AC_MAX]: per ac data packet statistics
++ * @time_slicing_duty_cycle_percent: (NEW) If this link is being served using
++ *	time slicing on a radio with one or more links, then the duty cycle
++ *	assigned to this link in %.
++ * @num_peers: number of peers
++ * @peer_info[]: per peer statistics
++ */
++struct STATS_LLS_WIFI_LINK_STAT {
++	uint8_t link_id; /* NEW, 1 byte (+ 3 bytes) */
++	enum wifi_link_state state; /* NEW, 4 bytes, 2023/03/29 */
++	int32_t radio; /* NEW, 4 bytes */
++	uint32_t frequency; /* NEW, 4 bytes */
++	uint32_t beacon_rx; /* 4 bytes */
++	/* 4 bytes padding */
++	uint64_t average_tsf_offset; /* 8 bytes */
++	uint32_t leaky_ap_detected;
++	uint32_t leaky_ap_avg_num_frames_leaked;
++	uint32_t leaky_ap_guard_time;
++	uint32_t mgmt_rx;
++	uint32_t mgmt_action_rx;
++	uint32_t mgmt_action_tx;
++	int32_t rssi_mgmt;
++	int32_t rssi_data;
++	int32_t rssi_ack;
++	struct STATS_LLS_WMM_AC_STAT ac[STATS_LLS_WIFI_AC_MAX];
++	uint8_t time_slicing_duty_cycle_precent; /* NEW */
++	uint32_t num_peers;
++	struct STATS_LLS_PEER_INFO peer_info[];
++};
++
++/**
+- * interface statistics
++ * interface statistics, used by single link (Android T)
+  *
+  * @iface: wifi interface
+  * @info: current state of the interface
+@@ -946,12 +1042,15 @@
+  * @ac[WIFI_AC_MAX]: per ac data packet statistics
+  * @num_peers: number of peers
+  * @peer_info[]: per peer statistics
++ *
++ * The bottom part from beacon_rx have been moved to STATS_LLS_WIFI_LINK_STAT
++ * in the new multi-link netdev level structure STATS_LLS_WIFI_IFACE_ML_STAT.
+  */
+ struct STATS_LLS_WIFI_IFACE_STAT {
+ 	void *iface;
+-	struct WIFI_INTERFACE_LINK_LAYER_INFO info;
+-	uint32_t beacon_rx;
+-	uint64_t average_tsf_offset;
++	struct WIFI_INTERFACE_LINK_LAYER_INFO info; /* 70 bytes + 2 bytes */
++	uint32_t beacon_rx; /* + a hole of 4 bytes */
++	uint64_t average_tsf_offset; /* 8-byte aligned */
+ 	uint32_t leaky_ap_detected;
+ 	uint32_t leaky_ap_avg_num_frames_leaked;
+ 	uint32_t leaky_ap_guard_time;
+@@ -966,6 +1065,21 @@
+ 	struct STATS_LLS_PEER_INFO peer_info[];
+ };
+ 
++/* Multi link stats for interface, used by Android U
++ *
++ * @iface: wifi interface
++ * @info: current state of the interface
++ * @num_links: Number of links
++ * @links: Stats per link
++ */
++struct STATS_LLS_WIFI_IFACE_ML_STAT {
++	void *iface;
++	struct WIFI_INTERFACE_LINK_LAYER_INFO info; /* 70 bytes + 2 bytes */
++	int32_t num_links;
++	struct STATS_LLS_WIFI_LINK_STAT links[MLD_LINK_MAX];
++};
++
++
+ /* Shared EMI Memory layout */
+ struct PEER_INFO_RATE_STAT {
+ 	struct STATS_LLS_PEER_INFO peer;
+@@ -977,17 +1091,42 @@
+ 	struct STATS_LLS_CHANNEL_STAT channel[STATS_LLS_CH_NUM];
+ };
+ 
++/* IFACE_NUM as BSSID_NUM to retrieved statistics by interface or sum up else */
++#if (defined CFG_SUPPORT_CONNAC3X && CFG_SUPPORT_CONNAC3X == 1)
++#define IFACE_NUM BSSID_NUM
++#else
++#define IFACE_NUM 1
++#endif
++
++/* Structure of FW reported data */
++struct HAL_LLS_FW_REPORT {
++	struct STATS_LLS_WIFI_IFACE_STAT iface[IFACE_NUM];
++	struct PEER_INFO_RATE_STAT peer_info[CFG_STA_REC_NUM];
++	struct WIFI_RADIO_CHANNEL_STAT radio[ENUM_BAND_NUM];
++};
++
++/* Buffer to hold collected data from FW reported EMI address */
+ struct HAL_LLS_FULL_REPORT {
+ 	struct STATS_LLS_WIFI_IFACE_STAT iface;
+ 	struct PEER_INFO_RATE_STAT peer_info[CFG_STA_REC_NUM];
+ 	struct WIFI_RADIO_CHANNEL_STAT radio[ENUM_BAND_NUM];
++	uint32_t tx_levels[ENUM_BAND_NUM][LLS_RADIO_STAT_MAX_TX_LEVELS];
+ };
+ 
++/* Buffer to hold collected data from FW reported EMI address */
++struct HAL_LLS_FULL_REPORT_V2 {
++	struct STATS_LLS_WIFI_IFACE_ML_STAT iface;
++	struct PEER_INFO_RATE_STAT peer_info[CFG_STA_REC_NUM];
++	struct WIFI_RADIO_CHANNEL_STAT radio[ENUM_BAND_NUM];
++	uint32_t tx_levels[ENUM_BAND_NUM][LLS_RADIO_STAT_MAX_TX_LEVELS];
++};
++
+ struct STATS_LLS_PEER_AP_REC {
+ 	uint16_t sta_count;
+ 	uint16_t chan_util;
+ 	uint8_t mac_addr[ETH_ALEN];
+ };
++#endif /* CFG_SUPPORT_LLS */
+ 
+ enum ANDROID_USABLE_CHANNEL_WIDTH {
+ 	ANDROID_WIFI_CHAN_WIDTH_20    = 0,
+diff --git a/os/none/include/gl_vendor.h b/os/none/include/gl_vendor.h
+index 68ad4bd..38dc68e 100644
+--- a/os/none/include/gl_vendor.h
++++ b/os/none/include/gl_vendor.h
+@@ -400,6 +400,62 @@
+ 	uint32_t center_freq1;
+ };
+ 
++/* RTT Capabilities */
++struct PARAM_WIFI_RTT_CAPABILITIES {
++	/* if 1-sided rtt data collection is supported */
++	uint8_t rtt_one_sided_supported;
++	/* if ftm rtt data collection is supported */
++	uint8_t rtt_ftm_supported;
++	/* if initiator supports LCI request. Applies to 2-sided RTT */
++	uint8_t lci_support;
++	/* if initiator supports LCR request. Applies to 2-sided RTT */
++	uint8_t lcr_support;
++	/* bit mask indicates what preamble is supported by initiator */
++	uint8_t preamble_support;
++	/* bit mask indicates what BW is supported by initiator */
++	uint8_t bw_support;
++};
++
++enum ENUM_NLA_PUT_DATE_TYPE {
++	NLA_PUT_DATE_U8 = 0,
++	NLA_PUT_DATE_U16,
++	NLA_PUT_DATE_U32,
++	NLA_PUT_DATE_U64,
++};
++
++/* RSSI Monitoring */
++struct PARAM_RSSI_MONITOR_T {
++	bool enable;	/* 1=Start, 0=Stop*/
++	int8_t max_rssi_value;
++	int8_t min_rssi_value;
++	uint8_t reserved[1];
++	uint8_t reserved2[4]; /* reserved for MT6632 */
++};
++
++struct PARAM_RSSI_MONITOR_EVENT {
++	uint8_t version;
++	int8_t rssi;
++	uint8_t BSSID[PARAM_MAC_ADDR_LEN];
++};
++
++/* Packet Keep Alive */
++struct PARAM_PACKET_KEEPALIVE_T {
++	bool enable;	/* 1=Start, 0=Stop*/
++	uint8_t index;
++	int16_t u2IpPktLen;
++	uint8_t pIpPkt[256];
++	uint8_t ucSrcMacAddr[PARAM_MAC_ADDR_LEN];
++	uint8_t ucDstMacAddr[PARAM_MAC_ADDR_LEN];
++	uint32_t u4PeriodMsec;
++	uint8_t reserved[8]; /* reserved for MT6632 */
++};
++
++struct PARAM_BSS_MAC_OUI {
++	uint8_t ucBssIndex;
++	uint8_t ucMacOui[MAC_OUI_LEN];
++};
++
++#if CFG_SUPPORT_LLS
+ /* channel statistics */
+ struct WIFI_CHANNEL_STAT {
+ 	struct WIFI_CHANNEL_INFO channel;
+@@ -483,15 +539,6 @@
+ 	u8 country_str[3];
+ };
+ 
+-/* access categories */
+-enum WIFI_TRAFFIC_AC {
+-	WIFI_AC_VO = 0,
+-	WIFI_AC_VI = 1,
+-	WIFI_AC_BE = 2,
+-	WIFI_AC_BK = 3,
+-	WIFI_AC_MAX = 4,
+-};
+-
+ /* wifi peer type */
+ enum WIFI_PEER_TYPE {
+ 	WIFI_PEER_STA,
+@@ -512,13 +559,152 @@
+ 	struct WIFI_RATE_STAT rate_stats[];
+ };
+ 
++/* interface statistics */
++struct WIFI_IFACE_STAT {
++	struct WIFI_INTERFACE_LINK_LAYER_INFO info;
++	uint32_t beacon_rx;
++	uint32_t mgmt_rx;
++	uint32_t mgmt_action_rx;
++	uint32_t mgmt_action_tx;
++	int32_t rssi_mgmt;
++	int32_t rssi_data;
++	int32_t rssi_ack;
++	struct WIFI_WMM_AC_STAT_ ac[WIFI_AC_MAX];
++	uint32_t num_peers;
++	struct WIFI_PEER_INFO peer_info[];
++};
++
++struct ANDROID_T_COMB_UNIT {
++	uint8_t band_0;
++	uint8_t ant_0;
++	uint8_t band_1;
++	uint8_t ant_1;
++
++/* wifi peer type */
++enum ENUM_STATS_PEER_TYPE {
++	STATS_LLS_WIFI_PEER_STA,
++	STATS_LLS_WIFI_PEER_AP,
++	STATS_LLS_WIFI_PEER_P2P_GO,
++	STATS_LLS_WIFI_PEER_P2P_CLIENT,
++	STATS_LLS_WIFI_PEER_NAN,
++	STATS_LLS_WIFI_PEER_TDLS,
++	STATS_LLS_WIFI_PEER_INVALID,
++};
++
+-/* per access category statistics */
+-struct WIFI_WMM_AC_STAT_ {
+-	enum WIFI_TRAFFIC_AC ac;
++/**
++ * per peer statistics
++ *
++ * @sta_count: station count
++ * @chan_util: channel utilization
++ * @reserved: reserved
++ */
++struct STATS_LLS_BSSLOAD_INFO {
++	uint16_t sta_count;
++	uint16_t chan_util;
++	uint8_t reserved[4];
++};
++
++/**
++ * wifi rate
++ *
++ * @preamble: 0: OFDM, 1:CCK, 2:HT 3:VHT 4:HE 5..7 reserved
++ * @nss: 0:1x1, 1:2x2, 3:3x3, 4:4x4
++ * @bw: 0:20MHz, 1:40Mhz, 2:80Mhz, 3:160Mhz
++ * @rateMcsIdx: OFDM/CCK rate code would be as per ieee std in the units of
++ *              0.5mbps
++ *              HT/VHT/HE it would be mcs index
++ * @reserved: reserved
++ * @bitrate: units of 100 Kbps
++ */
++struct STATS_LLS_WIFI_RATE {
++	uint32_t preamble   :3;
++	uint32_t nss        :2;
++	uint32_t bw         :3;
++	uint32_t rateMcsIdx :8;
++
++	uint32_t reserved   :16;
++	uint32_t bitrate;
++};
++
++/**
++ * per rate statistics
++ *
++ * @rate: rate information
++ * @tx_mpdu: number of successfully transmitted data pkts (ACK rcvd)
++ * @rx_mpdu: number of received data pkts
++ * @mpdu_lost: number of data packet losses (no ACK)
++ * @retries: total number of data pkt retries
++ * @retries_short: number of short data pkt retries
++ * @retries_long: number of long data pkt retries
++ */
++struct STATS_LLS_RATE_STAT {
++	struct STATS_LLS_WIFI_RATE rate;
+ 	uint32_t tx_mpdu;
+ 	uint32_t rx_mpdu;
+-	uint32_t tx_mcast;
++	uint32_t mpdu_lost;
++	uint32_t retries;
++	uint32_t retries_short;
++	uint32_t retries_long;
++};
++
++/**
++ * Statistics data reported for STATS_LLS_TAG_PEER_STAT.
++ *
++ * @type: peer type (AP, TDLS, GO etc.)
++ * @peer_mac_address[6]: mac address (unavailable)
++ * @capabilities: peer WIFI_CAPABILITY_XXX (unavailable)
++ * @bssload: STA count and CU
++ * @num_rate: number of rates
++ * @rate_stats: per rate statistics, number of entries  = num_rate
++ */
++struct STATS_LLS_PEER_INFO {
++	enum ENUM_STATS_PEER_TYPE type;
++	uint8_t peer_mac_address[6];
++	uint32_t capabilities;
++	struct STATS_LLS_BSSLOAD_INFO bssload;
++	uint32_t num_rate;
++	struct STATS_LLS_RATE_STAT rate_stats[]; /* structure revised */
++};
++
++/**
++ * access categories
++ */
++enum ENUM_STATS_LLS_AC {
++	STATS_LLS_WIFI_AC_VO  = 0,
++	STATS_LLS_WIFI_AC_VI  = 1,
++	STATS_LLS_WIFI_AC_BE  = 2,
++	STATS_LLS_WIFI_AC_BK  = 3,
++	STATS_LLS_WIFI_AC_MAX = 4,
++};
+ 
++/**
++ * Statistics data reported for STATS_LLS_TAG_WMM_AC_STAT.
++ *
++ * @ac: access category (VI, VO, BE, BK)
++ * @tx_mpdu: number of successfully transmitted unicast data pkts (ACK rcvd)
++ * @rx_mpdu: number of received unicast data packets
++ * @tx_mcast: number of successfully transmitted multicast data packets
++ *            STA case: implies ACK received from AP for the unicast packet
++ *            in which mcast pkt was sent
++ * @rx_mcast: number of received multicast data packets
++ * @rx_ampdu: number of received unicast a-mpdus;
++ *              support of this counter is optional
++ * @tx_ampdu: number of transmitted unicast a-mpdus;
++ *              support of this counter is optional
++ * @mpdu_lost: number of data pkt losses (no ACK)
++ * @retries: total number of data pkt retries
++ * @retries_short: number of short data pkt retries
++ * @retries_long: number of long data pkt retries
++ * @contention_time_min: data pkt min contention time (usecs)
++ * @contention_time_max: data pkt max contention time (usecs)
++ * @contention_time_avg: data pkt avg contention time (usecs)
++ * @contention_num_samples: num of data pkts used for contention statistics
++ */
++struct STATS_LLS_WMM_AC_STAT {
++	enum ENUM_STATS_LLS_AC ac;
++	uint32_t tx_mpdu;
++	uint32_t rx_mpdu;
++	uint32_t tx_mcast;
+ 	uint32_t rx_mcast;
+ 	uint32_t rx_ampdu;
+ 	uint32_t tx_ampdu;
+@@ -532,75 +718,231 @@
+ 	uint32_t contention_num_samples;
+ };
+ 
+-/* RTT Capabilities */
+-struct PARAM_WIFI_RTT_CAPABILITIES {
+-	/* if 1-sided rtt data collection is supported */
+-	uint8_t rtt_one_sided_supported;
+-	/* if ftm rtt data collection is supported */
+-	uint8_t rtt_ftm_supported;
+-	/* if initiator supports LCI request. Applies to 2-sided RTT */
+-	uint8_t lci_support;
+-	/* if initiator supports LCR request. Applies to 2-sided RTT */
+-	uint8_t lcr_support;
+-	/* bit mask indicates what preamble is supported by initiator */
+-	uint8_t preamble_support;
+-	/* bit mask indicates what BW is supported by initiator */
+-	uint8_t bw_support;
++#define STATS_LLS_MAX_NSS_NUM    2
++
++#define STATS_LLS_CCK_NUM        4   /* 1M/2M/5.5M/11M */
++#define STATS_LLS_OFDM_NUM       8   /* 6M/9M/12M/18M/24M/36M/48M/54M */
++#define STATS_LLS_HT_NUM         16  /* MCS0~15 */
++#define STATS_LLS_VHT_NUM        10  /* MCS0~9 */
++#define STATS_LLS_HE_NUM         12  /* MCS0~11 */
++#define STATS_LLS_EHT_NUM        16  /* MCS0~15 */
++
++#define STATS_LLS_MAX_CCK_BW_NUM  1  /* BW20 */
++#define STATS_LLS_MAX_OFDM_BW_NUM 1  /* BW20 */
++#define STATS_LLS_MAX_HT_BW_NUM   2  /* BW20/40 */
++#define STATS_LLS_MAX_VHT_BW_NUM  3  /* BW20/40/80 */
++#define STATS_LLS_MAX_HE_BW_NUM   4  /* BW20/40/80/160 */
++#define STATS_LLS_MAX_EHT_BW_NUM  5  /* BW20/40/80/160/320 */
++
++#define STATS_LLS_MAX_CCK_NUM  (STATS_LLS_CCK_NUM)
++#define STATS_LLS_MAX_OFDM_NUM (STATS_LLS_OFDM_NUM)
++#define STATS_LLS_MAX_HT_NUM   \
++	(STATS_LLS_HT_NUM * STATS_LLS_MAX_HT_BW_NUM)
++#define STATS_LLS_MAX_VHT_NUM  \
++	(STATS_LLS_VHT_NUM * STATS_LLS_MAX_VHT_BW_NUM * STATS_LLS_MAX_NSS_NUM)
++#define STATS_LLS_MAX_HE_NUM   \
++	(STATS_LLS_HE_NUM * STATS_LLS_MAX_HE_BW_NUM * STATS_LLS_MAX_NSS_NUM)
++#if (CFG_SUPPORT_802_11BE == 1)
++#define STATS_LLS_MAX_EHT_NUM   \
++	(STATS_LLS_EHT_NUM * STATS_LLS_MAX_EHT_BW_NUM * STATS_LLS_MAX_NSS_NUM)
++#else
++#define STATS_LLS_MAX_EHT_NUM   0
++#endif
++
++#define TX_POWER_LEVELS 256
++
++#define STATS_LLS_CH_NUM_2G4 14
++#define STATS_LLS_CH_NUM_5G 32
++#if CFG_SUPPORT_WIFI_6G
++#define STATS_LLS_CH_NUM_6G 64
++#else
++#define STATS_LLS_CH_NUM_6G 0
++#endif
++
++#define STATS_LLS_CH_NUM (STATS_LLS_CH_NUM_2G4 +	\
++			  STATS_LLS_CH_NUM_5G +		\
++			  STATS_LLS_CH_NUM_6G)
++
++#define STATS_LLS_RATE_NUM (STATS_LLS_MAX_CCK_NUM +	\
++			    STATS_LLS_MAX_OFDM_NUM +	\
++			    STATS_LLS_MAX_HT_NUM +	\
++			    STATS_LLS_MAX_VHT_NUM +	\
++			    STATS_LLS_MAX_HE_NUM +	\
++			    STATS_LLS_MAX_EHT_NUM)
++
++/**
++ * channel operating width
++ */
++enum ENUM_STATS_LLS_CHANNEL_WIDTH {
++	STATS_LLS_WIFI_CHAN_WIDTH_20    = 0,
++	STATS_LLS_WIFI_CHAN_WIDTH_40    = 1,
++	STATS_LLS_WIFI_CHAN_WIDTH_80    = 2,
++	STATS_LLS_WIFI_CHAN_WIDTH_160   = 3,
++	STATS_LLS_WIFI_CHAN_WIDTH_80P80 = 4,
++	STATS_LLS_WIFI_CHAN_WIDTH_5     = 5,
++	STATS_LLS_WIFI_CHAN_WIDTH_10    = 6,
++	STATS_LLS_WIFI_CHAN_WIDTH_INVALID = -1
+ };
+ 
+-/* interface statistics */
+-struct WIFI_IFACE_STAT {
++/**
++ * @width: channel width (20, 40, 80, 80+80, 160)
++ * @center_freq: primary 20 MHz channel
++ * @center_freq0: center frequency (MHz) first segment
++ * @center_freq1: center frequency (MHz) second segment
++ */
++struct STATS_LLS_CHANNEL_INFO {
++	enum ENUM_STATS_LLS_CHANNEL_WIDTH width;
++	int32_t center_freq;
++	int32_t center_freq0;
++	int32_t center_freq1;
++};
++
++/**
++ * @channel: channel
++ * @on_time: msecs the radio is awake
++ *           (32 bits number accruing over time)
++ * @cca_busy_time: msecs the CCA register is busy
++ *                 (32 bits number accruing over time)
++ */
++struct STATS_LLS_CHANNEL_STAT {
++	struct STATS_LLS_CHANNEL_INFO channel;
++	uint32_t on_time;
++	uint32_t cca_busy_time;
++};
++
++/**
++ * Statistics data reported for STATS_LLS_TAG_RADIO_STAT.
++ *
++ * @radio: wifi radio (if multiple radio supported)
++ * @on_time: msecs the radio is awake (32 bits number accruing over time)
++ * @tx_time: msecs the radio is transmitting (32 bits number accruing over time)
++ * @num_tx_levels: number of radio transmit power levels (unavailable)
++ * @tx_time_per_levels: pointer to an array of radio transmit per power levels
++ *                      in msecs accrued over time (unavailable)
++ * @rx_time: msecs the radio is in active receive
++ *           (32 bits number accruing over time)
++ * @on_time_scan: msecs the radio is awake due to all scan
++ *                (32 bits number accruing over time)
++ * @on_time_nbd: msecs the radio is awake due to NAN
++ *               (32 bits number accruing over time)
++ * @on_time_gscan: msecs the radio is awake due to G?scan
++ *                 (32 bits number accruing over time)
++ * @on_time_roam_scan: msecs the radio is awake due to roam?scan
++ *                     (32 bits number accruing over time)
++ * @on_time_pno_scan: msecs the radio is awake due to PNO scan
++ *                    (32 bits number accruing over time)
++ * @on_time_hs20: msecs the radio is awake due to HS2.0 scans and GAS exchange
++ *                (32 bits number accruing over time)
++ * @num_channels: number of channels
++ * @RESERVED: for padding since sizeof this structure returns 56 bytes.
++ * @channels: channel statistics
++ */
++struct STATS_LLS_WIFI_RADIO_STAT {
++	int32_t radio;
++	uint32_t on_time;
++	uint32_t tx_time;
++	uint32_t num_tx_levels; /* TX_POWER_LEVELS */
++	uint32_t *tx_time_per_levels; /* NULL */
++	uint32_t rx_time;
++	uint32_t on_time_scan;
++	uint32_t on_time_nbd;
++	uint32_t on_time_gscan;
++	uint32_t on_time_roam_scan;
++	uint32_t on_time_pno_scan;
++	uint32_t on_time_hs20;
++	uint32_t num_channels;
++	struct STATS_LLS_CHANNEL_STAT channels[];
++};
++
++/**
++ * interface statistics
++ *
++ * @iface: wifi interface
++ * @info: current state of the interface
++ * @beacon_rx: access point beacon received count from connected AP
++ * @average_tsf_offset: average beacon offset encountered (beacon_TSF - TBTT)
++ *               The average_tsf_offset field is used so as to calculate the
++ *               typical beacon contention time on the channel as well may be
++ *               used to debug beacon synchronization and related power
++ *               consumption issue
++ * @leaky_ap_detected: indicate that this AP typically leaks packets
++ *                     beyond the driver guard time.
++ * @leaky_ap_avg_num_frames_leaked: average number of frame leaked by AP
++ *                                  after frame with PM bit set was ACK'ed by AP
++ * @leaky_ap_guard_time: guard time currently in force
++ *                       (when implementing IEEE power management based on
++ *                       frame control PM bit), How long driver waits before
++ *                       shutting down the radio and after receiving an ACK
++ *                       for a data frame with PM bit set)
++ * @mgmt_rx: access point mgmt frames received count from connected AP
++ *           (including Beacon)
++ * @mgmt_action_rx: action frames received count
++ * @mgmt_action_tx: action frames transmit count
++ * @rssi_mgmt: access Point Beacon and Management frames RSSI (averaged)
++ * @rssi_data: access Point Data Frames RSSI (averaged) from connected AP
++ * @rssi_ack: access Point ACK RSSI (averaged) from connected AP
++ * @ac[WIFI_AC_MAX]: per ac data packet statistics
++ * @num_peers: number of peers
++ * @peer_info[]: per peer statistics
++ */
++struct STATS_LLS_WIFI_IFACE_STAT {
++	void *iface;
+ 	struct WIFI_INTERFACE_LINK_LAYER_INFO info;
+ 	uint32_t beacon_rx;
++	uint64_t average_tsf_offset;
++	uint32_t leaky_ap_detected;
++	uint32_t leaky_ap_avg_num_frames_leaked;
++	uint32_t leaky_ap_guard_time;
+ 	uint32_t mgmt_rx;
+ 	uint32_t mgmt_action_rx;
+ 	uint32_t mgmt_action_tx;
+ 	int32_t rssi_mgmt;
+ 	int32_t rssi_data;
+ 	int32_t rssi_ack;
+-	struct WIFI_WMM_AC_STAT_ ac[WIFI_AC_MAX];
++	struct STATS_LLS_WMM_AC_STAT ac[STATS_LLS_WIFI_AC_MAX];
+ 	uint32_t num_peers;
+-	struct WIFI_PEER_INFO peer_info[];
++	struct STATS_LLS_PEER_INFO peer_info[];
+ };
+ 
+-enum ENUM_NLA_PUT_DATE_TYPE {
+-	NLA_PUT_DATE_U8 = 0,
+-	NLA_PUT_DATE_U16,
+-	NLA_PUT_DATE_U32,
+-	NLA_PUT_DATE_U64,
++/* Shared EMI Memory layout */
++struct PEER_INFO_RATE_STAT {
++	struct STATS_LLS_PEER_INFO peer;
++	struct STATS_LLS_RATE_STAT rate[STATS_LLS_RATE_NUM];
+ };
+ 
+-/* RSSI Monitoring */
+-struct PARAM_RSSI_MONITOR_T {
+-	bool enable;	/* 1=Start, 0=Stop*/
+-	int8_t max_rssi_value;
+-	int8_t min_rssi_value;
+-	uint8_t reserved[1];
+-	uint8_t reserved2[4]; /* reserved for MT6632 */
++struct WIFI_RADIO_CHANNEL_STAT {
++	struct STATS_LLS_WIFI_RADIO_STAT radio;
++	struct STATS_LLS_CHANNEL_STAT channel[STATS_LLS_CH_NUM];
+ };
+ 
+-struct PARAM_RSSI_MONITOR_EVENT {
+-	uint8_t version;
+-	int8_t rssi;
+-	uint8_t BSSID[PARAM_MAC_ADDR_LEN];
++/* IFACE_NUM as BSSID_NUM to retrieved statistics by interface or sum up else */
++#if (defined CFG_SUPPORT_CONNAC3X && CFG_SUPPORT_CONNAC3X == 1)
++#define IFACE_NUM BSSID_NUM
++#else
++#define IFACE_NUM 1
++#endif
++
++/* Structure of FW reported data,  */
++struct HAL_LLS_FW_REPORT {
++	struct STATS_LLS_WIFI_IFACE_STAT iface[IFACE_NUM];
++	struct PEER_INFO_RATE_STAT peer_info[CFG_STA_REC_NUM];
++	struct WIFI_RADIO_CHANNEL_STAT radio[ENUM_BAND_NUM];
+ };
+ 
+-/* Packet Keep Alive */
+-struct PARAM_PACKET_KEEPALIVE_T {
+-	bool enable;	/* 1=Start, 0=Stop*/
+-	uint8_t index;
+-	int16_t u2IpPktLen;
+-	uint8_t pIpPkt[256];
+-	uint8_t ucSrcMacAddr[PARAM_MAC_ADDR_LEN];
+-	uint8_t ucDstMacAddr[PARAM_MAC_ADDR_LEN];
+-	uint32_t u4PeriodMsec;
+-	uint8_t reserved[8]; /* reserved for MT6632 */
++/* Buffer to hold collected data from FW reported EMI address */
++struct HAL_LLS_FULL_REPORT {
++	struct STATS_LLS_WIFI_IFACE_STAT iface;
++	struct PEER_INFO_RATE_STAT peer_info[CFG_STA_REC_NUM];
++	struct WIFI_RADIO_CHANNEL_STAT radio[ENUM_BAND_NUM];
++	uint32_t tx_levels[ENUM_BAND_NUM][LLS_RADIO_STAT_MAX_TX_LEVELS];
+ };
+ 
+-struct PARAM_BSS_MAC_OUI {
+-	uint8_t ucBssIndex;
+-	uint8_t ucMacOui[MAC_OUI_LEN];
++struct STATS_LLS_PEER_AP_REC {
++	uint16_t sta_count;
++	uint16_t chan_util;
++	uint8_t mac_addr[ETH_ALEN];
+ };
++#endif /* CFG_SUPPORT_LLS */
+ 
+ struct ANDROID_T_COMB_UNIT {
+ 	uint8_t band_0;
+@@ -635,6 +977,7 @@
+ 	uint16_t array_size;
+ 	struct ANDROID_USABLE_CHANNEL_UNIT channel_array[];
+ };
++#endif /* CFG_SUPPORT_LLS */
+ 
+ /*******************************************************************************
+  *                                 M A C R O S
