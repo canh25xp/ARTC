@@ -1,0 +1,3 @@
+[submodule "the-art-of-command-line"]
+	path = the-art-of-command-line
+	url = https://github.com/jlevy/the-art-of-command-line
