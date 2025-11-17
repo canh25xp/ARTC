@@ -40,7 +40,11 @@ Which command should you learn ?
 
 ### The Basic
 
-Some worth learning, or at least, knowing command.
+According to [Wikipedia](https://en.wikipedia.org/wiki/List_of_POSIX_commands), there's a bout **155** standard UNIX commands.
+
+But to get started, these are the **15** commands that I think you should get familiar with.
+
+`cd`, `pwd`, `ls`, `cat`, `file`, `less`, `touch`, `cp`, `mv`, `mkdir`, `rm`, `find`, `man`, `alias`, `exit`
 
 ### The Intermediate
 
@@ -76,8 +80,6 @@ Some of my daily commands
 - `ffmpeg`
 - `yt-dlp`
 - `spotdl`
-
-## Who ?
 
 ## How ?
 
