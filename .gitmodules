@@ -1,3 +1,6 @@
 [submodule "the-art-of-command-line"]
 	path = the-art-of-command-line
 	url = https://github.com/jlevy/the-art-of-command-line
+[submodule "dracula"]
+	path = dracula
+	url = https://github.com/dracula/marp.git
