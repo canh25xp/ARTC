@@ -17,6 +17,13 @@ explorer.exe slide.html # for WSL
 npx marp slide.md --preview --watch
 ```
 
+## Server mode
+
+```bash
+
+xdg-open http://localhost:8080/slide.md
+```
+
 ## Troubleshoot
 
 WSL convert to pdf failed
