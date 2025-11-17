@@ -18,7 +18,7 @@ Master the way of CLI to level-up your workflow
 
 - **CLI**: Command Line Interface `git`
 - **GUI**: Graphical User Interface `git-gui`
-- **TUI**: Terminal User Interface `lazygit`
+- **TUI**: Text User Interface `lazygit` <!-- Sometimes known as Terminal User Interface-->
 
 ---
 
@@ -27,17 +27,21 @@ Master the way of CLI to level-up your workflow
 - Full access to applications
 - Many GUIs are built on CLI counterparts:
   `p4` and `p4v`, `git` and `git-gui`
-- Sometimes CLI is all you have
-  Remote SSH, Cloud access, Container connections
+- Sometimes CLI is all you have:
+  **Remote SSH** , **Cloud access** , **Container connections**
 - Some applications only have CLI
 - Scripting and Automation
 - Fast and Lightweight
 
 ---
 
-## Personal Experience
+## Real world example
 
-Applying a large patch file manually:
+<!-- I cannot forget the day that my TL ask everyone in my team to apply a diff patch file manually. -->
+<!-- Mind you, the patch was contains like 100 changed files with over thousand lines of code. -->
+<!-- To be fair, we only use `p4` as the version control system, so it is understandable that the patch file meant to be apply with `git`. -->
+
+Applying a large patch:
 
 ```bash
 git apply --ignore-space-change --ignore-whitespace --whitespace=nowarn --allow-empty f1968cb.diff
@@ -158,7 +162,7 @@ grep -E "[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}" *.md
 
 ---
 
-## Resources
+## More Resources
 
 - `man` pages - Official documentation
 - `tldr` - Simplified examples
@@ -168,17 +172,6 @@ grep -E "[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}" *.md
 
 ---
 
-## Key Takeaways
-
-1. CLI provides more control than GUI
-2. Start with basic commands and gradually learn advanced ones
-3. Understand the meaning behind command names
-4. Use documentation tools like `man` and `tldr`
-5. Practice regularly and build your own workflows
-6. Be cautious with powerful commands
-
----
-
 ## Thank You !
 
-Feel free to have leave any question!
+Feel free to have leave any question
