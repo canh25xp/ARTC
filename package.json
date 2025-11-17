@@ -3,7 +3,8 @@
     "@marp-team/marp-cli": "^4.2.3"
   },
   "marp": {
-    "themeSet": "./dracula/dracula/dracula.css",
-    "allowLocalFiles": true
+    "theme": "./dracula/dracula/dracula.css",
+    "allowLocalFiles": true,
+    "html": true
   }
 }
