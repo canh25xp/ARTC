@@ -13,22 +13,19 @@ Master the way of CLI to level-up your workflow
 
 ## What is CLI?
 
-- **CLI**: Command Line Interface (`git`)
-- **GUI**: Graphical User Interface (`git-gui`)
-- **TUI**: Terminal User Interface (`lazygit`)
+- **CLI**: Command Line Interface `git`
+- **GUI**: Graphical User Interface `git-gui`
+- **TUI**: Terminal User Interface `lazygit`
 
 ---
 
 ## Why Bother Learning Command Line?
 
 - Full access to applications
-- Many GUIs are built on CLI counterparts
-  - `p4` and `p4v`
-  - `git` and `git-gui`
+- Many GUIs are built on CLI counterparts:
+  `p4` and `p4v`, `git` and `git-gui`
 - Sometimes CLI is all you have
-  - Remote SSH
-  - Cloud access
-  - Container connections
+  Remote SSH, Cloud access, Container connections
 - Some applications only have CLI
 - Scripting and Automation
 - Fast and Lightweight
