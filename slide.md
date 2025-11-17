@@ -1,5 +1,6 @@
 ---
 marp: true
+title: ARTC
 theme: dracula
 paginate: true
 size: 16:9
@@ -7,13 +8,13 @@ size: 16:9
 
 # The Art of Command Line
 
-![bg](./assets/terminal.jpg)
+![bg right](./assets/terminal.jpg)
 
 Master the way of CLI to level-up your workflow
 
 ---
 
-## What is CLI?
+## What is CLI ?
 
 - **CLI**: Command Line Interface `git`
 - **GUI**: Graphical User Interface `git-gui`
@@ -21,7 +22,7 @@ Master the way of CLI to level-up your workflow
 
 ---
 
-## Why Bother Learning Command Line?
+## Why Bother Learning CLI ?
 
 - Full access to applications
 - Many GUIs are built on CLI counterparts:
@@ -180,4 +181,4 @@ grep -E "[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}" *.md
 
 ## Thank You !
 
-Feel free to have leave any question
+Feel free to have leave any question!
