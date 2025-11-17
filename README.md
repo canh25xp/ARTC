@@ -1,9 +1,9 @@
-# The Art of Command Line Presentation
+# The Art of Command Line
 
 ## Convert slide
 
 ```bash
 npm install # Run once
-npx @marp-team/marp-cli --theme ./dracula/dracula/dracula.css slide.md
+npx marp slide.md
 xdg-open slide.html
 ```
