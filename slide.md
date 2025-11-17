@@ -37,9 +37,11 @@ Master the way of CLI to level-up your workflow
 
 ## Real world example
 
-<!-- I cannot forget the day that my TL ask everyone in my team to apply a diff patch file manually. -->
-<!-- Mind you, the patch was contains like 100 changed files with over thousand lines of code. -->
-<!-- To be fair, we only use `p4` as the version control system, so it is understandable that the patch file meant to be apply with `git`. -->
+<!--
+I cannot forget the day that my TL ask everyone in my team to apply a diff patch file manually.
+Mind you, the patch was contains like 100 changed files with over thousand lines of code.
+To be fair, we only use `p4` as the version control system, so it is understandable that the patch file meant to be apply with `git`.
+-->
 
 Applying a large patch:
 
@@ -55,7 +57,9 @@ git apply --ignore-space-change --ignore-whitespace --whitespace=nowarn --allow-
 
 There's about **155** standard UNIX commands ([Wikipedia](https://en.wikipedia.org/wiki/List_of_POSIX_commands))
 
-<!-- But to get started, these are the 15 commands that I think you should get familiar with. -->
+<!--
+But to get started, these are the 15 commands that I think you should get familiar with.
+-->
 
 `cd`, `pwd`, `ls`, `cat`, `file`, `less`, `touch`, `cp`, `mv`, `mkdir`, `rm`, `find`, `man`, `alias`, `exit`
 
