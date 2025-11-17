@@ -51,7 +51,11 @@ git apply --ignore-space-change --ignore-whitespace --whitespace=nowarn --allow-
 
 ## Which Commands Should You Learn?
 
-### The Basics (15 essential commands)
+### The Basics
+
+There's about **155** standard UNIX commands ([Wikipedia](https://en.wikipedia.org/wiki/List_of_POSIX_commands))
+
+<!-- But to get started, these are the 15 commands that I think you should get familiar with. -->
 
 `cd`, `pwd`, `ls`, `cat`, `file`, `less`, `touch`, `cp`, `mv`, `mkdir`, `rm`, `find`, `man`, `alias`, `exit`
 
@@ -79,6 +83,8 @@ Daily commands:
 - `rg`, `fd`, `btm`, `eza`
 - `gdu`, `gh`, `jq`, `starship`
 - `tldr`
+
+---
 
 Handy commands:
 
@@ -112,10 +118,20 @@ grep -E "[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}" *.md
 
 ### Use Documentation Tools
 
+<!-- These are like the Linux Bibles -->
+
 - `man` - Official documentation
 - `tldr` - Simplified examples
 
 ### Don't Copy-Paste Blindly
+
+<!--
+When you're learning CLI, DO NOT copy-paste random script from Reddit.
+That's basically playing Russian roulette with your files, or worse, whole file system.
+
+I've once losing my whole git branch for my project by running `git revert` blindly.
+Although later I learnt that you can actually revert the `git revert` command itself.
+-->
 
 - Avoid running random scripts from the internet
 - Understand what commands do before executing them
