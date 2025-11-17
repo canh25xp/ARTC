@@ -86,6 +86,14 @@ Handy commands:
 
 ---
 
+![bg](./assets/before.png)
+
+---
+
+![bg](./assets/after.png)
+
+---
+
 ## How to Learn CLI?
 
 ### Understand Command Names
