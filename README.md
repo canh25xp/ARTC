@@ -20,7 +20,7 @@ npx marp slide.md --preview --watch
 ## Server mode
 
 ```bash
-
+npx marp --server .
 xdg-open http://localhost:8080/slide.md
 ```
 
