@@ -2,6 +2,13 @@
 
 ![slide](./assets/slide.png)
 
+## Clone
+
+```bash
+git clone https://github.com/canh25xp/ARTC.git
+git submodule --update --init
+```
+
 ## Convert slide
 
 ```bash
