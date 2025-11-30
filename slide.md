@@ -8,7 +8,7 @@ size: 16:9
 
 # The Art of Command Line
 
-![bg right](./assets/terminal.jpg)
+![bg right](./assets/intro.gif)
 
 Master the way of CLI to level-up your workflow
 
