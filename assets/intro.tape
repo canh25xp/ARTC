@@ -59,7 +59,7 @@ Output intro.gif
 
 Require cowsay
 
-Set Theme "Catppuccin Mocha"
+Set Theme "Dracula"
 Set Shell "bash"
 Set FontSize 24
 Set Width 960
