@@ -51,6 +51,120 @@ git apply --ignore-space-change --ignore-whitespace --whitespace=nowarn --allow-
 
 ---
 
+## Structure of a command
+
+<!--
+Most of the times, a command look something like this
+-->
+
+```sh
+command --flag value first second third
+#                   positional arguments
+```
+
+- **command**:
+  - An **_executable_**
+  - An **_alias_**
+  - A **_shell functions_**
+  - A **_script_**
+  - A **_shell builtin_** (`bash` specific)
+  - A **_cmdlet_** (`pwsh` specific)
+
+---
+
+## Structure of a command
+
+<!-- Some command comes with a variety of **subcommand** -->
+
+```sh
+command subcommand --flag value first second third
+```
+
+**subcommand** always comes right after the command itself.
+
+```sh
+git commit --message "Some changes"
+```
+
+Some applications has many nested **subcommand**
+
+```sh
+gh repo clone canh25xp/ARTC
+gh repo fork canh25xp/ARTC
+```
+
+---
+
+## Structure of a command
+
+### Some special cases
+
+To reduce ambiguity between the value of a flag and a positional arguments, some applications use the **key=value** pair
+
+```sh
+command --flag=value first second third
+```
+
+<!-- Here the `--flag` arguments is shorten to `-f` -->
+
+---
+
+## Structure of a command
+
+### Some special cases
+
+Shorten flags
+
+```sh
+command -f value first second third
+```
+
+Most of the time, shorten flags come after a single dash `-`,
+and long flag come after a double dash `--`.
+
+<!-- Here the `--flag` arguments is shorten to `-f` -->
+
+---
+
+## Structure of a command
+
+### Some special cases
+
+Boolean flags (or switches)
+
+```sh
+command --bool first second third
+command -b first second third
+```
+
+Shorten boolean flags sometimes grouped together
+
+```sh
+command -a -b -c first second third
+command -abc first second third # Same as above
+```
+
+---
+
+## Structure of a command
+
+### Some special cases
+
+Sometimes, cli applications allow flag and value sticks together
+
+```sh
+command -f value first second third
+command -fvalue first second third
+```
+
+For example:
+
+```sh
+7z x archive.zip -oOutput
+```
+
+---
+
 ## Which Commands Should You Learn?
 
 ### The Basics
