@@ -53,6 +53,12 @@ git apply --ignore-space-change --ignore-whitespace --whitespace=nowarn --allow-
 
 ## Structure of a command
 
+<style scoped>
+section {
+    font-size: 32px;
+}
+</style>
+
 <!--
 Most of the times, a command look something like this
 -->
