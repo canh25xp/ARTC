@@ -62,13 +62,13 @@ command --flag value first second third
 #                   positional arguments
 ```
 
-- **command**:
-  - An **_executable_**
-  - An **_alias_**
-  - A **_shell functions_**
-  - A **_script_**
-  - A **_shell builtin_** (`bash` specific)
-  - A **_cmdlet_** (`pwsh` specific)
+- **command** could be one of these type:
+  - An **_executable_** : `ls`, `cat`, `cp`, `mv`, `git`, `p4`, `curl`,...
+  - An **_alias_** : `ll`, `la`, `egrep`, `fgrep`
+  - A **_shell functions_** :
+  - A **_script_** : `*.sh`, `*.ps1`, `*.bat`, `*.vbs`
+  - A **_shell builtin_** (`bash` specific) : `cd`, `pwd`, `alias`, `type`
+  - A **_cmdlet_** (`pwsh` specific) : `Set-Location`, `Get-Content`, `Out-Host`
 
 ---
 
