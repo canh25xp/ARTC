@@ -63,11 +63,12 @@ command --flag value first second third
 ```
 
 * **command** could be one of these type:
-  * An **_executable_**: `ls`, `grep`, `cat`, `cp`, `mv`, `git`, `p4`, `curl`,... `*.exe`
+  * An **_executable_**:
+    * A ***binary***: `ls`, `grep`, `cat`, `cp`, `mv`, `git`, `p4`, `curl`,... `*.exe`
+    * A **_script_**: `*.sh`, `*.ps1`, `*.bat`, `*.vbs`
   * An **_alias_**: `ll`, `la`, `egrep`, `fgrep`
-  * A **_shell functions_**
-  * A **_script_**: `*.sh`, `*.ps1`, `*.bat`, `*.vbs`
-  * A **_shell builtin_** (`bash` specific): `cd`, `pwd`, `alias`, `type`
+  * A **_shell functions_**: `function tf() { echo TheFork }`
+  * A **_shell builtin_** (`bash` specific): `cd`, `pwd`, `alias`, `history` ,`type`
   * A **_cmdlet_** (`pwsh` specific): `Set-Location`, `Get-Content`, `Out-Host`
 
 ---
