@@ -167,9 +167,15 @@ For example:
 
 ## Which Commands Should You Learn?
 
-### The Basics
-
 There's about **155** standard UNIX commands ([Wikipedia](https://en.wikipedia.org/wiki/List_of_POSIX_commands))
+
+![w:900 center](./assets/POSIX-commands.png)
+
+---
+
+## Which Commands Should You Learn?
+
+### The Basics
 
 <!--
 But to get started, these are the 15 commands that I think you should get familiar with.
