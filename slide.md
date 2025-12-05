@@ -219,7 +219,13 @@ There's about **155** standard UNIX commands ([Wikipedia](https://en.wikipedia.o
 But to get started, these are the 15 commands that I think you should get familiar with.
 -->
 
-`cd`, `pwd`, `ls`, `cat`, `file`, `less`, `touch`, `cp`, `mv`, `mkdir`, `rm`, `find`, `man`, `alias`, `exit`
+File management: `touch`, `mkdir`, `cat`, `cp`, `mv`, `rm`, `file`, `grep`
+
+Navigation: `cd`, `pwd`, `ls`
+
+Process management: `ps`, `kill`
+
+Shell manipulation: `exit`, `clear`
 
 ---
 
