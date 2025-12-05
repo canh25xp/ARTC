@@ -308,7 +308,9 @@ Use cheatsheet
 
 ## How to Learn CLI?
 
-### Understand Command Names
+### Tips and tricks
+
+Understand Command Names
 
 For example, `grep`:
 
@@ -322,7 +324,9 @@ grep -E "[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}" *.md
 
 ## How to Learn CLI?
 
-### Don't Copy-Paste Blindly
+### Tips and tricks
+
+Don't Copy-Paste Blindly
 
 <!--
 When you're learning CLI, DO NOT copy-paste random script from Reddit.
@@ -334,6 +338,16 @@ Although later I learnt that you can actually revert the `git revert` command it
 
 - Avoid running random scripts from the internet
 - Understand what commands do before executing them
+
+---
+
+## How to Learn CLI?
+
+### Tips and tricks
+
+Don't hesitate to ask!
+
+Ask me, Ask Stack Overflow, Ask Github Discussion, Ask Chat GPT,...
 
 ---
 
