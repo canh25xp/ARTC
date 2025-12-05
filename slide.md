@@ -268,6 +268,7 @@ Learn to **search**, **list**, **install** and **uninstall** packages.
 - `curl`
 - `gpg`
 - `git`
+- `vim`
 
 ---
 
