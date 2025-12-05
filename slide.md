@@ -308,6 +308,17 @@ Use cheatsheet
 
 ## How to Learn CLI?
 
+### Learn how to edit commands
+
+- Tab completions: `Tab`, `Shift+Tab`, `Ctrl+space`
+- History Search: `Ctrl+n`, `Ctrl+p`
+- Line editing: `Ctrl+w`, `Ctrl+a`, `Ctrl+e`, `Ctrl+u`, `Ctrl+k`
+- Visual Edit: `Ctrl+x Ctrl+e`
+
+---
+
+## How to Learn CLI?
+
 ### Tips and tricks
 
 Understand Command Names
