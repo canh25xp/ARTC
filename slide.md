@@ -16,9 +16,9 @@ Master the way of CLI to level-up your workflow
 
 ## What is CLI ?
 
-- **CLI**: Command Line Interface `git`
-- **GUI**: Graphical User Interface `git-gui`
-- **TUI**: Text User Interface `lazygit` <!-- Sometimes known as Terminal User Interface-->
+- **CLI**: Command Line Interface `git`, `p4`, `odin4`
+- **GUI**: Graphical User Interface `git-gui`, `p4v`, `odin4v`
+- **TUI**: Text User Interface `lazygit`, `vim` <!-- Sometimes known as Terminal User Interface-->
 
 ---
 
@@ -280,16 +280,6 @@ Learn to **search**, **list**, **install** and **uninstall** packages.
 - `rg`, `fd`, `btm`, `eza`
 - `gdu`, `gh`, `jq`, `starship`
 - `ffmpeg`, `yt-dlp`, `spotdl`
-
----
-
-![bg](./assets/before.png)
-
----
-
-![bg](./assets/after.png)
-
----
 
 ## How to Learn CLI?
 
