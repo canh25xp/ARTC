@@ -425,13 +425,10 @@ Ask me, Ask Stack Overflow, Ask Github Discussion, Ask Chat GPT,...
 
 ---
 
-## More Resources
+## References
 
-- `man` pages - Official documentation
-- `tldr` - Simplified examples
-- [The Art of Command Line](https://github.com/jlevy/the-art-of-command-line) - Comprehensive guide
-- `curl cheat.sh/command` - Quick cheat sheets
-- [Explainshell](http://explainshell.com/) - Command breakdown
+- [The Art of Command Line](https://github.com/jlevy/the-art-of-command-line)
+- [Explainshell](http://explainshell.com/)
 
 ---
 
