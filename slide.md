@@ -51,6 +51,30 @@ git apply --ignore-space-change --ignore-whitespace --whitespace=nowarn --allow-
 
 ---
 
+## Terminal vs Shell
+
+If your **keyboard** is a **pen** then the **terminal** is your **notebook**, and **shell** is the **page**.
+
+A **terminal** might allows you to run many different **shell**, run many **shell** at the same time.
+
+- **Terminal**: `wt` (Windows Terminal), `alacritty`, `wezterm`, `kitty`, ...
+- **Shell**: `pwsh`, `cmd`, `bash`, `zsh`, `fish`, `nushell`, ``
+
+---
+
+## `pwsh` vs `bash`
+
+| `pwsh`                                                      | `bash`                              |
+| ----------------------------------------------------------- | ----------------------------------- |
+| Cross-platform                                              | Unix only                           |
+| Output is **.NET objects**                                  | Output is **text streams**          |
+| Has Verb-Noun cmdlets (`Set-Location`, `Get-Location`, ...) | Has shell builtin (`cd`, `pwd`,...) |
+
+- `powershell.exe`: the legacy powershell (stop at version _5.1_)
+- `pwsh.exe`: newer version of powershell
+
+---
+
 ## Structure of a command
 
 <style scoped>
