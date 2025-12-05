@@ -64,6 +64,13 @@ A **terminal** might allows you to run many different **shell**, run many **shel
 
 ## `pwsh` vs `bash`
 
+<style scoped>
+table {
+    width: 100%;
+    table-layout: fixed;
+}
+</style>
+
 | `pwsh`                                                      | `bash`                              |
 | ----------------------------------------------------------- | ----------------------------------- |
 | Cross-platform                                              | Unix only                           |
