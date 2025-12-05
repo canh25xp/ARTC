@@ -99,6 +99,7 @@ command --flag value first second third
 #                   positional arguments
 ```
 
+<!-- prettier-ignore -->
 * **command** could be one of these type:
   * An **_executable_**:
     * A **_binary_**: `ls`, `grep`, `cat`, `cp`, `mv`, `git`, `p4`, `curl`,... `*.exe`
