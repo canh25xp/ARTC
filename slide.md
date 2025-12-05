@@ -70,7 +70,7 @@ command --flag value first second third
 
 * **command** could be one of these type:
   * An **_executable_**:
-    * A ***binary***: `ls`, `grep`, `cat`, `cp`, `mv`, `git`, `p4`, `curl`,... `*.exe`
+    * A **_binary_**: `ls`, `grep`, `cat`, `cp`, `mv`, `git`, `p4`, `curl`,... `*.exe`
     * A **_script_**: `*.sh`, `*.ps1`, `*.bat`, `*.vbs`
   * An **_alias_**: `ll`, `la`, `egrep`, `fgrep`
   * A **_shell functions_**: `function tf() { echo TheFork }`
@@ -233,6 +233,43 @@ Handy commands:
 
 ## How to Learn CLI?
 
+### Learn how to get help
+
+Use the cli builtin help page.
+
+- `git --help`
+- `odin4 -h`
+- `p4 help`
+- `cmd /?` (windows only)
+
+---
+
+## How to Learn CLI?
+
+### Learn how to get help
+
+Use system's Manual
+
+<!-- These are like the OS Bibles -->
+
+- `man cat` (bash)
+- `help cat` (pwsh)
+
+---
+
+## How to Learn CLI?
+
+### Learn how to get help
+
+Use cheatsheet
+
+- `tldr tar`
+- `curl cht.sh/tar`
+
+---
+
+## How to Learn CLI?
+
 ### Understand Command Names
 
 For example, `grep`:
@@ -246,13 +283,6 @@ grep -E "[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}" *.md
 ---
 
 ## How to Learn CLI?
-
-### Use Documentation Tools
-
-<!-- These are like the Linux Bibles -->
-
-- `man` - Official documentation
-- `tldr` - Simplified examples
 
 ### Don't Copy-Paste Blindly
 
