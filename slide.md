@@ -35,7 +35,7 @@ Master the way of CLI to level-up your workflow
 
 ---
 
-## Real world example
+## Why Bother Learning CLI ?
 
 <!--
 I cannot forget the day that my TL ask everyone in my team to apply a diff patch file manually.
@@ -58,7 +58,7 @@ If your **keyboard** is a **pen** then the **terminal** is your **notebook**, an
 A **terminal** might allows you to run many different **shell**, run many **shell** at the same time.
 
 - **Terminal**: `wt` (Windows Terminal), `console`, `alacritty`, `wezterm`, `kitty`, ...
-- **Shell**: `pwsh`, `cmd`, `bash`, `zsh`, `fish`, `nushell`, ``
+- **Shell**: `pwsh`, `cmd`, `bash`, `zsh`, `fish`, `nushell`, ...
 
 ---
 
