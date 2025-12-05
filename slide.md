@@ -214,7 +214,7 @@ There's about **155** standard UNIX commands ([Wikipedia](https://en.wikipedia.o
 
 ## Which Commands Should You Learn?
 
-### The Basics
+### Basic commands
 
 <!--
 But to get started, these are the 15 commands that I think you should get familiar with.
@@ -232,31 +232,40 @@ Shell manipulation: `exit`, `clear`
 
 ## Which Commands Should You Learn?
 
-### The Intermediate
+### Package managers
 
-- `ssh`
-- `curl`
-- `git`
-- `p4`
+<!--
+Avoid the pain of manually download and install every tools.
+Learn to use a package manager.
+-->
+
+Learn to **search**, **list**, **install** and **uninstall** packages.
+
+- Windows: `winget`, `scoop`, `choco`
+- Ubuntu/Debian: `apt`, `snap`
+- Language specific: `cargo`, `go`, `npm`, `pip`
 
 ---
 
 ## Which Commands Should You Learn?
 
-### The Advanced
+### Common tools
 
-Daily commands:
+<!-- Most of these has already pre-installed in most OS distro. -->
+
+- `ssh`
+- `curl`
+- `gpg`
+- `git`
+
+## Which Commands Should You Learn?
+
+### Productivity tools
 
 - `chezmoi`, `nvim`, `tmux`, `zoxide`
 - `fzf`, `http`, `lazygit`, `bat`
 - `rg`, `fd`, `btm`, `eza`
 - `gdu`, `gh`, `jq`, `starship`
-- `tldr`
-
----
-
-Handy commands:
-
 - `ffmpeg`, `yt-dlp`, `spotdl`
 
 ---
@@ -314,6 +323,12 @@ Use cheatsheet
 - History Search: `Ctrl+n`, `Ctrl+p`
 - Line editing: `Ctrl+w`, `Ctrl+a`, `Ctrl+e`, `Ctrl+u`, `Ctrl+k`
 - Visual Edit: `Ctrl+x Ctrl+e`
+
+---
+
+## How to Learn CLI?
+
+### Learn how to config commands
 
 ---
 
