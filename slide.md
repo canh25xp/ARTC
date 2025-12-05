@@ -57,7 +57,7 @@ If your **keyboard** is a **pen** then the **terminal** is your **notebook**, an
 
 A **terminal** might allows you to run many different **shell**, run many **shell** at the same time.
 
-- **Terminal**: `wt` (Windows Terminal), `alacritty`, `wezterm`, `kitty`, ...
+- **Terminal**: `wt` (Windows Terminal), `console`, `alacritty`, `wezterm`, `kitty`, ...
 - **Shell**: `pwsh`, `cmd`, `bash`, `zsh`, `fish`, `nushell`, ``
 
 ---
