@@ -232,6 +232,17 @@ Shell manipulation: `exit`, `clear`
 
 ## Which Commands Should You Learn?
 
+### Intermediate commands
+
+Data manipulating: `sort`, `uniq`, `cut`, `paste`, `join`, `awk`, `sed`.
+System monitoring: `top`, `htop`
+Networking: `netstat`, `ifconfig`, `ipconfig`
+Disk management: `du`, `df`
+
+---
+
+## Which Commands Should You Learn?
+
 ### Package managers
 
 <!--
@@ -257,6 +268,8 @@ Learn to **search**, **list**, **install** and **uninstall** packages.
 - `curl`
 - `gpg`
 - `git`
+
+---
 
 ## Which Commands Should You Learn?
 
@@ -374,54 +387,6 @@ Although later I learnt that you can actually revert the `git revert` command it
 Don't hesitate to ask!
 
 Ask me, Ask Stack Overflow, Ask Github Discussion, Ask Chat GPT,...
-
----
-
-## Tips from "The Art of Command Line"
-
-### Basics
-
-- Learn Bash well (`man bash`)
-- Master a text-based editor (Vim/Emacs)
-- Understand file management (`ls -l`, `less`, `head`, `tail`)
-- Learn redirection (`>`, `<`, `|`)
-- Know job management (`&`, `ctrl-z`, `ctrl-c`)
-
----
-
-## Tips from "The Art of Command Line"
-
-### Everyday Use
-
-- Use **Tab** for completion
-- Use **ctrl-r** for command history search
-- Use **ctrl-w** to delete last word
-- Use **ctrl-u** to delete to start of line
-- Use `xargs` for powerful command chaining
-
----
-
-## Tips from "The Art of Command Line"
-
-### Processing Files and Data
-
-- `find` and `locate` for file searching
-- `grep`, `ack`, `ag`, `rg` for text searching
-- `sort`, `uniq`, `cut`, `paste`, `join` for text manipulation
-- `awk` and `sed` for data munging
-- `jq` for JSON processing
-
----
-
-## Tips from "The Art of Command Line"
-
-### System Debugging
-
-- `top`/`htop` for system monitoring
-- `netstat`/`ss` for network connections
-- `iostat` for disk I/O statistics
-- `strace`/`ltrace` for system call debugging
-- `dmesg` for kernel messages
 
 ---
 
