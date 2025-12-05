@@ -260,27 +260,18 @@ Learn to **search**, **list**, **install** and **uninstall** packages.
 
 ## Which Commands Should You Learn?
 
-### Common tools
+### Productivity tools
 
 <!-- Most of these has already pre-installed in most OS distro. -->
 
-- `ssh`
-- `curl`
-- `gpg`
-- `git`
-- `vim`
-
----
-
-## Which Commands Should You Learn?
-
-### Productivity tools
-
+- `ssh`, `curl`, `git`
 - `chezmoi`, `nvim`, `tmux`, `zoxide`
 - `fzf`, `http`, `lazygit`, `bat`
 - `rg`, `fd`, `btm`, `eza`
 - `gdu`, `gh`, `jq`, `starship`
 - `ffmpeg`, `yt-dlp`, `spotdl`
+
+---
 
 ## How to Learn CLI?
 
