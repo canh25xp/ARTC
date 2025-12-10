@@ -1,4 +1,4 @@
 {
   "markdown.marp.themes": ["./dracula/dracula/dracula.css"],
-  "markdown.marp.enableHtml": true
+  "markdown.marp.html": "all"
 }
