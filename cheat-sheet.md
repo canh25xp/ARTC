@@ -8,7 +8,9 @@
 
 > [!NOTE]
 > These shortcuts assuming you're using the **emacs** key binding mode.
+>
 > In `bash`, emacs mode is the default: `set -o emacs`
+>
 > In `pwsh`, emacs mode is **NOT** the default, enable it with `Set-PsReadLineOption -EditMode Emacs`
 
 ### Moving
@@ -61,4 +63,5 @@
 
 > [!NOTE]
 > In `bash` You can always use `bind -p` to get a list of key bindings.
+>
 > In `pwsh`, use `Get-PSReadLineKeyHandler -Bound`.
