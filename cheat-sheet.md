@@ -2,117 +2,63 @@
 
 ## Essential Commands for Daily Use
 
-### File Navigation & Info
+<!-- TODO : Throw some shii in here -->
 
-```bash
-pwd                     # Show current directory
-ls -la                  # List all files with details
-cd ~/Documents          # Go to Documents folder
-cd -                    # Go back to previous directory
-find . -name "*.txt"    # Find all text files
-```
+## Shell shortcut keys
 
-### File Operations
+> [!NOTE]
+> These shortcuts assuming you're using the **emacs** key binding mode.
+> In `bash`, emacs mode is the default: `set -o emacs`
+> In `pwsh`, emacs mode is **NOT** the default, enable it with `Set-PsReadLineOption -EditMode Emacs`
 
-```bash
-cp file.txt copy.txt               # Copy file
-mv oldname.txt newname.txt         # Rename/move file
-rm file.txt                       # Delete file (careful!)
-mkdir new-folder                   # Create folder
-touch new-file.txt                 # Create empty file
-```
+### Moving
 
-### Text Processing
+| Keys        | Actions                                                      |
+| ----------- | ------------------------------------------------------------ |
+| `Ctrl + a`  | Go to the begin of the line (Appending)                      |
+| `Ctrl + e`  | Go to the end of the line                                    |
+| `Alt + b`   | Backward one word                                            |
+| `Alt + f`   | Forward one word                                             |
+| `Ctrl + f`  | Forward one character                                        |
+| `Ctrl + b`  | Backward one character                                       |
+| `Ctrl + xx` | Toggle between the start of line and current cursor position |
 
-```bash
-grep "search" file.txt         # Find text in file
-grep -r "search" .             # Find in all files
-sort names.txt                 # Sort lines alphabetically
-uniq -c names.txt              # Count occurrences of each line
-wc -l file.txt                 # Count lines in file
-```
+### Editing
 
-### Viewing Files
+| Keys                | Actions                                                                           |
+| ------------------- | --------------------------------------------------------------------------------- |
+| `Ctrl + u`          | Cut the line before the cursor position                                           |
+| `Alt + Del`         | Delete the Word before the cursor                                                 |
+| `Alt + d`           | Delete the Word after the cursor                                                  |
+| `Ctrl + d`          | Delete character under the cursor                                                 |
+| `Ctrl + h`          | Delete character before the cursor (backspace)                                    |
+| `Ctrl + w`          | Cut the Word before the cursor to the clipboard                                   |
+| `Ctrl + k`          | Cut the Line after the cursor to the clipboard                                    |
+| `Alt + t`           | Swap current word with previous                                                   |
+| `Ctrl + t`          | Swap the last two characters before the cursor (typo)                             |
+| `Esc + t`           | Swap the last two words before the cursor.                                        |
+| `Ctrl + y`          | Paste the last thing to be cut (yank)                                             |
+| `Alt + u`           | UPPER capitalize every character from the cursor to the end of the current word.  |
+| `Alt + l`           | Lower the case of every character from the cursor to the end of the current word. |
+| `Alt + c`           | Capitalize the character under the cursor and move to the end of the word.        |
+| `Alt + r`           | Cancel the changes and put back the line as it was in the history (revert)        |
+| `Сtrl + _` [^1]     | Undo                                                                              |
+| `Сtrl + x Ctrl + e` | Edit current command with $EDITOR                                                 |
 
-```bash
-cat file.txt                   # Show entire file
-less file.txt                  # Page through file (press q to quit)
-head -10 file.txt              # Show first 10 lines
-tail -10 file.txt              # Show last 10 lines
-```
+[^1]: Some terminal emulator don't have `Ctrl + _`, use `Ctrl + /` instead
 
-### System Info (Mac/Linux)
+### History
 
-```bash
-df -h                   # Disk space usage
-du -h --max-depth=1     # Directory sizes
-ps aux | grep process   # Find running processes
-history | tail -20      # Recent commands
-```
+| Keys       | Actions                                        |
+| ---------- | ---------------------------------------------- |
+| `Ctrl + n` | Next command in history                        |
+| `Ctrl + p` | Previous command in history                    |
+| `Ctrl + s` | Forward search history.                        |
+| `Ctrl + r` | Reverse search history                         |
+| `Ctrl + o` | Execute the command found via Ctrl+r or Ctrl+s |
+| `Ctrl + g` | Escape from history searching mode             |
+| `Alt + .`  | Use the last word of the previous command      |
 
-### Remote & Network
-
-```bash
-ssh user@server.com               # Connect to remote server
-scp file.txt user@server.com:~    # Copy file to server
-ping google.com                   # Test connection
-curl -s website.com               # Download website content
-```
-
-## Power User Tricks
-
-### Pipes: Feed one command into another
-
-```bash
-# Count lines with "error" in all log files
-grep "error" *.log | wc -l
-
-# Find largest files in current directory
-ls -lh | sort -k5 -hr | head -10
-
-# Find processes using most memory
-ps aux | sort -k4 -nr | head -5
-```
-
-### Multiple Files at Once (globbing)
-
-```bash
-# Rename all .html files to .bak
-cp *.html *.bak        $(wait, doesn't work)
-
-# Correct way: find and process each file
-find . -name "*.html" -exec cp {} {}.bak \;
-```
-
-### Daily Productivity Commands
-
-```bash
-# Quick system overview
-du -h --max-depth=1 | sort -hr
-
-# Find all images larger than 5MB
-find . -name "*.jpg" -size +5M
-
-# Count files in each subdirectory
-for d in */; do echo "$d: $(find "$d" -type f | wc -l)"; done
-```
-
-## Getting Help
-
-```bash
-man command            # Read manual page
-command --help         # Brief help
-explainshell.com       # Interactive command explanations
-```
-
-## Remember These Shortcuts
-
-- `Ctrl+C` - Stop running command
-- `Ctrl+D` - End input (or exit shell)
-- `TAB` - Auto-complete commands/files
-- `Ctrl+R` - Search command history
-- `Ctrl+A` - Go to start of line
-- `Ctrl+E` - Go to end of line
-- `Ctrl+W` - Delete word backwards
-
-**Practice Tip:** Start with 3 commands that solve your biggest daily problems. Use them for a week to build confidence.
+> [!NOTE]
+> In `bash` You can always use `bind -p` to get a list of key bindings.
+> In `pwsh`, use `Get-PSReadLineKeyHandler -Bound`.
