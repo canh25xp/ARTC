@@ -384,6 +384,7 @@ Ask me, Ask Stack Overflow, Ask Github Discussion, Ask Chat GPT,...
 
 - [The Art of Command Line](https://github.com/jlevy/the-art-of-command-line)
 - [Explainshell](http://explainshell.com/)
+- [Bash-Cheat-Sheet](https://github.com/RehanSaeed/Bash-Cheat-Sheet)
 
 ---
 
