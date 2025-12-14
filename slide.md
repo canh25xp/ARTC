@@ -253,7 +253,7 @@ Learn to use a package manager.
 Learn to **search**, **list**, **install** and **uninstall** packages.
 
 - Windows: `winget`, `scoop`, `choco`
-- Ubuntu/Debian: `apt`, `snap`
+- Ubuntu/Debian: `apt`, `snap`, `flatpak`
 - Language specific: `cargo`, `go`, `npm`, `pip`
 
 ---
