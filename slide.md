@@ -16,6 +16,9 @@ Master the way of CLI to level-up your workflow
 
 ## What is CLI ?
 
+A CLI application is:
+Any applications that you can interact with it from the Shell.
+
 - **CLI**: Command Line Interface `git`, `p4`, `odin4`
 - **GUI**: Graphical User Interface `git-gui`, `p4v`, `odin4v`
 - **TUI**: Text User Interface `lazygit`, `vim` <!-- Sometimes known as Terminal User Interface-->
