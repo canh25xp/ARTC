@@ -277,20 +277,20 @@ Learn to **search**, **list**, **install** and **uninstall** packages.
 These commands are meant to be a Drop-in Replacement for their successor
 
 <!-- TODO: This list is too long, decrease the font size, or something idk -->
-- `cat` -> `bat`
-- `ls` -> `eza`
-- `cd` -> `zoxide`
-- `grep` -> `rg`
-- `find` -> `fd`
-- `sed` -> `sd`
-- `top` -> `btm`
-- `cp` -> `rsync`
-- `curl` -> `curlie`, `http`
-- `diff` -> `delta`
-- `du` -> `dust`, `gdu`
-- `df` -> `duf`
-- `ps` -> `procs`
-- `vim` -> `nvim`
+- **`cat` → `bat`**: Syntax highlighting, paging, git integration, line numbers.
+- **`ls` → `eza`**: Better default formatting, icons, git status, tree view.
+- **`cd` → `zoxide`**: Smarter directory jumping based on usage frequency.
+- **`cp` → `rsync`**: Incremental copying, resume support, progress, remote sync.
+- **`rm` → `rip`**: Safer deletes with trash support and recovery.
+- **`grep` → `rg`**: Much faster search, respects `.gitignore`, better defaults.
+- **`find` → `fd`**: Simpler syntax, faster search, sensible defaults.
+- **`sed` → `sd`**: Clearer find-and-replace syntax, safer by default.
+- **`top` → `btm`**: Modern TUI, mouse support, multiple views, better visuals.
+- **`curl` → `curlie`, `http`**: Human-friendly syntax, readable output, JSON highlighting.
+- **`diff` → `delta`**: Syntax highlighting, side-by-side diff, git-aware output.
+- **`du` → `dust`, `gdu`**: Faster disk usage scanning, clearer summaries, better visuals.
+- **`df` → `duf`**: Clean table layout, human-readable sizes, filesystem filtering.
+- **`ps` → `procs`**: Colored output, tree view, more readable process info.
 
 ---
 
