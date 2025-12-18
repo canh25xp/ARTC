@@ -261,8 +261,6 @@ Learn to **search**, **list**, **install** and **uninstall** packages.
 
 ## Which Commands Should You Learn?
 
-### Productivity tools
-
 <!-- Most of these has already pre-installed in most OS distro. -->
 
 - **`ssh`, `git`, `tmux`, `nvim`**
@@ -271,6 +269,19 @@ Learn to **search**, **list**, **install** and **uninstall** packages.
 - `rg`, `fd`, `btm`, `eza`, `bat`, `zoxide`
 - `gdu`, `gh`, `jq`, `starship`
 - `ffmpeg`, `yt-dlp`, `spotdl`
+
+---
+
+## Which Commands Should You Learn?
+
+These commands are meant to be a Drop-in Replacement for their successor
+
+- `cat` -> `bat`
+- `grep` -> `rg`
+- `find` -> `fd`
+- `ls` -> `eza`
+- `top` -> `btm`
+- `cd` -> `zoxide`
 
 ---
 
