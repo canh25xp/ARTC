@@ -360,7 +360,7 @@ Use cheatsheet
 
 ### Learn how to edit commands
 
-- Tab completions: `Tab`, `Shift+Tab`, `Ctrl+space`
+- Tab completions: ` Tab `, ` Shift+Tab `, ` Ctrl+space `
 - History Search: `Ctrl+n`, `Ctrl+p`
 - Line editing: `Ctrl+w`, `Ctrl+a`, `Ctrl+e`, `Ctrl+u`, `Ctrl+k`
 - Visual Edit: `Ctrl+x Ctrl+e`
@@ -374,7 +374,7 @@ Use cheatsheet
 Highest &rarr; Lowest
 
 1. Command-line arguments
-2. Environment variables: `$GIT_PAGER`, `GIT_EDITOR`
+2. Environment variables: `$GIT_PAGER`, `$GIT_EDITOR`
 3. Project config files: `.git/config`
 4. User config files: `~/.gitconfig`
 5. System config files: `/etc/gitconfig`
