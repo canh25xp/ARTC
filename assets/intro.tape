@@ -65,6 +65,7 @@ Set FontSize 24
 Set Width 960
 Set Height 1080
 Set Padding 5
+Set TypingSpeed 20ms
 
 Type "cd ~/projects/ARTC" Sleep 500ms  Enter
 
