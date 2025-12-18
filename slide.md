@@ -274,6 +274,20 @@ Learn to **search**, **list**, **install** and **uninstall** packages.
 
 ---
 
+## Which Commands Should You Learn?
+
+[`ffmpeg`](https://github.com/FFmpeg/FFmpeg): A collection of libraries and tools to process multimedia: images, audio, video, subtitles, ...
+
+- `ffmpeg`: manipulate, convert and stream multimedia content.
+- `ffplay`: minimal multimedia player.
+- `ffprobe`: analysis and inspect multimedia content.
+
+---
+
+![bg](demo/ffmpeg/ffmpeg.gif)
+
+---
+
 ## How to Learn CLI?
 
 ### Learn how to get help
