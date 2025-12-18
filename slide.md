@@ -274,9 +274,19 @@ Learn to **search**, **list**, **install** and **uninstall** packages.
 
 ## Which Commands Should You Learn?
 
-These commands are meant to be a Drop-in Replacement for their successor
+<style scoped>
+section {
+    font-size: 24px;
+}
+</style>
 
-<!-- TODO: This list is too long, decrease the font size, or something idk -->
+<!--
+These commands are meant to be a Drop-in Replacement for their successor.
+With prettier output, better behaviour , more intuitive cli, improve performance, saner defaults.
+Overall, you're probably doing fine without these.
+But having them just gonna make your Terminal experiences much more comfortable.
+-->
+
 - **`cat` → `bat`**: Syntax highlighting, paging, git integration, line numbers.
 - **`ls` → `eza`**: Better default formatting, icons, git status, tree view.
 - **`cd` → `zoxide`**: Smarter directory jumping based on usage frequency.
