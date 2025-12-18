@@ -102,7 +102,7 @@ find "$repo_root" -type f -name '*.tape' -print0 | while IFS= read -r -d '' tape
   popd >/dev/null
 done
 
-if [[ -n $tape_filter_file && $found_any == false ]]; then
-  echo "Error: no tape named '$tape_filter_file' was found." >&2
-  exit 1
-fi
+# if [[ -n $tape_filter_file && $found_any == false ]]; then
+#   echo "Error: no tape named '$tape_filter_file' was found." >&2
+#   exit 1
+# fi
