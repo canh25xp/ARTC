@@ -264,11 +264,11 @@ Learn to **search**, **list**, **install** and **uninstall** packages.
 <!-- Most of these has already pre-installed in most OS distro. -->
 
 - **`ssh`, `git`, `tmux`, `nvim`**
-- `chezmoi`, `fzf`
-- `http`, `lazygit`
-- `rg`, `fd`, `btm`, `eza`, `bat`, `zoxide`
-- `gdu`, `gh`, `jq`, `starship`
-- `ffmpeg`, `yt-dlp`, `spotdl`
+- `chezmoi`, `fzf`, `lazygit`, `yazi`
+- `rg`, `fd`, `sd`, `eza`, `bat`, `zoxide`, `btm`, `http`, `curlie`, `delta`, `dust`, `gdu`, `duf`, `procs`
+- `gh`, `jq`, `starship`
+- `ffmpeg`, `pandoc`
+- `yt-dlp`, `instaloader`, `spotdl`
 
 ---
 
@@ -276,12 +276,21 @@ Learn to **search**, **list**, **install** and **uninstall** packages.
 
 These commands are meant to be a Drop-in Replacement for their successor
 
+<!-- TODO: This list is too long, decrease the font size, or something idk -->
 - `cat` -> `bat`
+- `ls` -> `eza`
+- `cd` -> `zoxide`
 - `grep` -> `rg`
 - `find` -> `fd`
-- `ls` -> `eza`
+- `sed` -> `sd`
 - `top` -> `btm`
-- `cd` -> `zoxide`
+- `cp` -> `rsync`
+- `curl` -> `curlie`, `http`
+- `diff` -> `delta`
+- `du` -> `dust`, `gdu`
+- `df` -> `duf`
+- `ps` -> `procs`
+- `vim` -> `nvim`
 
 ---
 
