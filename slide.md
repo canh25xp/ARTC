@@ -236,6 +236,7 @@ Shell manipulation: `exit`, `clear`
 
 Data manipulating: `sort`, `uniq`, `cut`, `paste`, `join`, `awk`, `sed`.
 System monitoring: `top`, `htop`
+Data transferring: `curl`, `wget`
 Networking: `netstat`, `ifconfig`, `ipconfig`
 Disk management: `du`, `df`
 
@@ -264,10 +265,10 @@ Learn to **search**, **list**, **install** and **uninstall** packages.
 
 <!-- Most of these has already pre-installed in most OS distro. -->
 
-- `ssh`, `curl`, `git`
-- `chezmoi`, `nvim`, `tmux`, `zoxide`
-- `fzf`, `http`, `lazygit`, `bat`
-- `rg`, `fd`, `btm`, `eza`
+- **`ssh`, `git`, `tmux`, `nvim`**
+- `chezmoi`, `fzf`
+- `http`, `lazygit`
+- `rg`, `fd`, `btm`, `eza`, `bat`, `zoxide`
 - `gdu`, `gh`, `jq`, `starship`
 - `ffmpeg`, `yt-dlp`, `spotdl`
 
