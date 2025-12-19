@@ -360,7 +360,7 @@ Use cheatsheet
 
 ### Learn how to edit commands
 
-- Tab completions: ` Tab `, ` Shift+Tab `, ` Ctrl+space `
+- Tab completions: `Tab`, `Shift+Tab`, `Ctrl+space`
 - History Search: `Ctrl+n`, `Ctrl+p`
 - Line editing: `Ctrl+w`, `Ctrl+a`, `Ctrl+e`, `Ctrl+u`, `Ctrl+k`
 - Visual Edit: `Ctrl+x Ctrl+e`
@@ -431,6 +431,9 @@ Ask me, Ask Stack Overflow, Ask Github Discussion, Ask Chat GPT,...
 - [The Art of Command Line](https://github.com/jlevy/the-art-of-command-line)
 - [Explainshell](http://explainshell.com/)
 - [Bash-Cheat-Sheet](https://github.com/RehanSaeed/Bash-Cheat-Sheet)
+- [tmux-cheat-sheet](https://tmuxai.dev/tmux-cheat-sheet/)
+- [ohshitgit](https://ohshitgit.com/)
+- [everything-curl](https://everything.curl.dev/)
 
 ---
 
