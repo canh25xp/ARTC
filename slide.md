@@ -74,6 +74,13 @@ table {
 }
 </style>
 
+<!--
+`pwsh` differs to `bash` in many area such as syntax, keyboard shortcut, auto completions, ...
+
+The biggest different being `pwsh` is a full-featured, object-orientated programming language.
+Meaning it support proper error handling, and blabla
+-->
+
 | `pwsh`                                                      | `bash`                              |
 | ----------------------------------------------------------- | ----------------------------------- |
 | Cross-platform                                              | Unix only                           |
@@ -82,6 +89,22 @@ table {
 
 - `powershell.exe`: the legacy powershell (stop at version _5.1_)
 - `pwsh.exe`: newer version of powershell
+
+---
+
+## `pwsh` vs `bash`
+
+Cmdlet have the advantages of being well integrated into powershell but that's also it's weaknesses: it cannot be used independently.
+Meaning other tool cannot use it directly.
+
+```bash
+# This only works in bash, it will NOT work in powershell
+fzf --preview "cat {}" --query $query -1 -0
+# Has to be used with `pwsh`
+pwsh -NoProfile -Command "Get-Content -Path {}" --query $query -1 -0
+# Or use a standalone binary
+fzf --preview "bat {}" --query $query -1 -0
+```
 
 ---
 
