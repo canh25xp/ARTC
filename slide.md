@@ -160,6 +160,70 @@ gh repo fork canh25xp/ARTC
 
 ---
 
+## Shell Expansion Happens First
+
+- The shell rewrites many arguments **before** launching your program.
+- **Pathname/glob**: `*.c` becomes every matching file in the current directory.
+- **Variable/tilde**: `$HOME` or `~` are replaced with your home path.
+- **Arithmetic**: `$((1 + 2))` is calculated by the shell, not the program.
+- **Command substitution**: `$(pwd)` runs a command, the output becomes the argument.
+- Quote arguments to opt out of specific expansions: `"*.c"` stays literal.
+
+---
+
+## Inspect What Your Program Receives
+
+```c
+// test.c
+#include <stdio.h>
+int main(int argc, char *argv[]) {
+  for (int i = 0; i < argc; i++)
+    printf("argv[%d] = %s\n", i, argv[i]);
+  return 0;
+}
+```
+
+Compile and run with `gcc ./demo/shell-expansion/test.c -o test && ./test *.md`
+
+---
+
+## Demo: Shell vs Program
+
+```bash
+$ ./test *.md $((1+2))
+argv[0] = './args'
+argv[1] = 'cheat-sheet.md'
+argv[2] = 'slide.md'
+argv[3] = '3'
+
+$ ./test "*.md" '$((1+2))'
+argv[0] = './args'
+argv[1] = '*.md'
+argv[2] = '$((1+2))'
+```
+
+---
+
+## Demo: Shell vs Program
+
+What about this case ?
+
+<!--
+Here, since `p4*` does not match any filename under current working directory.
+So the arguments is parse literally and `apt` responsible for expand the package name.
+-->
+
+```bash
+$ apt list p4*
+p4-cli/noble,now 2025.2-2852709~noble amd64 [installed,automatic]
+p4-proxy/noble 2025.2-2852709~noble amd64
+p4-server/noble 2025.2-2852709~noble amd64
+```
+
+Try `touch p4v` and run `apt list p4*` again. The command now return nothing.
+
+---
+
 ## Structure of a command
 
 ### Some special cases
