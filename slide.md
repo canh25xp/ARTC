@@ -523,6 +523,36 @@ So that you don't have to spam up key to find a commands.
 
 ## How to Learn CLI?
 
+### Recommended config
+
+Make `pwsh` keybinding more similar to `bash`
+
+```sh
+# $PROFILE
+Set-PsReadLineOption -EditMode Emacs
+```
+
+By default, `pwsh` is using 'windows' edit mode.
+By changing to 'emacs' mode, you'll get a closer experiences to `bash`.
+
+---
+
+## How to Learn CLI?
+
+### Recommended config
+
+Edit current command with $env:EDITOR like edit-and-execute-command in `bash`
+
+```sh
+# $PROFILE
+$env:EDITOR = "nvim"
+Set-PSReadLineKeyHandler -Chord 'Ctrl+x,Ctrl+e' -Function ViEditVisually
+```
+
+---
+
+## How to Learn CLI?
+
 ### Tips and tricks
 
 Understand Command Names
