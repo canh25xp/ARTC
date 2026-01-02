@@ -473,6 +473,56 @@ Highest &rarr; Lowest
 
 ## How to Learn CLI?
 
+### Recommended config
+
+Turn on case insensitive completion
+
+```sh
+# ~/.inputrc
+set completion-ignore-case on
+set completion-map-case on
+```
+
+So that `cd down` with TAB completion to `cd Downloads`.
+
+---
+
+## How to Learn CLI?
+
+### Recommended config
+
+Make TAB completion cycle through all matches.
+
+```sh
+# ~/.inputrc
+set show-all-if-ambiguous on # Display a list of the matching files
+"\t": menu-complete # TAB
+"\e[Z": menu-complete-backward # Shift-Tab
+```
+
+If there are multiple matches for completion, Tab and Shift-Tab should cycle through them all
+
+---
+
+## How to Learn CLI?
+
+### Recommended config
+
+Make history navigation easier
+
+```sh
+# ~/.inputrc
+"\C-p": history-search-backward
+"\C-n": history-search-forward
+```
+
+Ctrl-n and Ctrl-p will cycle through history based on characters already typed on the line.
+So that you don't have to spam up key to find a commands.
+
+---
+
+## How to Learn CLI?
+
 ### Tips and tricks
 
 Understand Command Names
