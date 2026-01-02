@@ -16,6 +16,8 @@ Master the way of CLI to level-up your workflow
 
 ## Table of Contents
 
+![bg left](./assets/cmatrix.gif)
+
 - [What is CLI ?](#3)
 - [Why Bother Learning CLI ?](#5)
 - [Structure of a command](#9)
