@@ -12,6 +12,9 @@ size: 16:9
 
 Master the way of CLI to level-up your workflow
 
+This seminar is a concentrated of my 5 years of using linux.
+To be teach you all of it is impossible.
+
 ---
 
 ## Table of Contents
