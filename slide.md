@@ -36,10 +36,23 @@ Any applications that you can interact with it from the Shell.
 - **GUI**: Graphical User Interface `git-gui`, `p4v`, `odin4v`
 - **TUI**: Text User Interface `lazygit`, `vim` <!-- Sometimes known as Terminal User Interface-->
 
+> [!NOTE]
+> TUI is a subset of CLI
+
 ---
 
 <!-- Left: (lazygit) GUI Right: (git) CLI -->
+
 ![bg](./assets/cli-tui.png)
+
+---
+
+## What is CLI ?
+
+By interact I mean it should at least have a help menu.
+That is, you should be able to open help by using 1 of the following flag: `--help`, `-h`, `-help`, `help`, `/?`, `/help`.
+
+Some applications is a mixture of both CLI and GUI (`code --help`)
 
 ---
 
