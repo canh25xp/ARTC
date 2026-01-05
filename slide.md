@@ -382,15 +382,27 @@ Learn to **search**, **list**, **install** and **uninstall** packages.
 
 ## Which Commands Should You Learn?
 
-<!-- Most of these has already pre-installed in most OS distro. -->
+<!--
+Now that you know most basic to intermediate commands.
+It's time to move on to some commands that will actually boot your productivity.
+-->
 
 - [`ssh`](https://www.openssh.com/), [`tmux`](https://github.com/tmux/tmux), [`nvim`](https://github.com/neovim/neovim), [`git`](https://git-scm.com/)
-- [`chezmoi`](https://github.com/twpayne/chezmoi), [`starship`](https://github.com/starship/starship)
-- [`gh`](https://github.com/cli/cli), [`fzf`](https://github.com/junegunn/fzf), [`lazygit`](https://github.com/jesseduffield/lazygit), [`yazi`](https://github.com/sxyazi/yazi)
+- [`chezmoi`](https://github.com/twpayne/chezmoi), [`starship`](https://github.com/starship/starship), [`gh`](https://github.com/cli/cli), [`fzf`](https://github.com/junegunn/fzf), [`lazygit`](https://github.com/jesseduffield/lazygit), [`yazi`](https://github.com/sxyazi/yazi)
 - [`bat`](https://github.com/sharkdp/bat), [`eza`](https://github.com/eza-community/eza), [`zoxide`](https://github.com/ajeetdsouza/zoxide), [`rsync`](https://rsync.samba.org/), [`rip`](https://github.com/MilesCranmer/rip2), [`rg`](https://github.com/BurntSushi/ripgrep), [`fd`](https://github.com/sharkdp/fd), [`sd`](https://github.com/chmln/sd), [`btm`](https://github.com/sharkdp/bottom), [`curlie`](https://github.com/rs/curlie), [`http`](https://httpie.io/), [`delta`](https://github.com/dandavison/delta), [`dust`](https://github.com/bootandy/dust), [`gdu`](https://github.com/dundee/gdu), [`duf`](https://github.com/muesli/duf), [`procs`](https://github.com/dalance/procs)
-- [`ffmpeg`](https://ffmpeg.org/), [`pandoc`](https://pandoc.org/), [`jq`](https://stedolan.github.io/jq/)
-- [`yt-dlp`](https://github.com/yt-dlp/yt-dlp), [`instaloader`](https://instaloader.github.io/), [`spotdl`](https://github.com/spotDL/spotify-downloader), [`trans`](https://github.com/soimort/translate-shell)
+- [`ffmpeg`](https://ffmpeg.org/), [`pandoc`](https://pandoc.org/), [`jq`](https://stedolan.github.io/jq/), [`yq`](https://github.com/kislyuk/yq)
+- [`yt-dlp`](https://github.com/yt-dlp/yt-dlp), [`instaloader`](https://instaloader.github.io/), [`spotdl`](https://github.com/spotDL/spotify-downloader), [`spotify-tui`](https://github.com/Rigellute/spotify-tui), [`trans`](https://github.com/soimort/translate-shell)
 - [`codex`](https://openai.com/blog/openai-codex), [`gemini`](https://ai.google.dev/gemini), [`claude`](https://claude.ai/), [`qwen`](https://qwen.ai/), [`copilot`](https://github.com/features/copilot), [`opencode`](https://opencode.ai/), [`ollama`](https://ollama.com/), [`cline`](https://github.com/cline/cline)
+
+<!--
+- The first 4 commands, also the 4 commands that I think the most important in my workflow.
+  I literally use it every day:
+    - `ssh` to either remote to my machine, or to use it as a proxy server.
+    - `tmux` to manage multiple sessions
+    - `nvim` to edit code
+    - `git` to save and sync code between machines.
+  I will come back to these 4 commands in details later.
+-->
 
 ---
 
