@@ -407,7 +407,23 @@ It's time to move on to some commands that will actually boot your productivity.
     - `nvim` to edit code
     - `git` to save and sync code between machines.
   I will come back to these 4 commands in details later.
+
+- Now this is a fairly long list, which would be impossible to cover all of it.
+  So I will just demonstrate each one in my Terminal as I speak.
 -->
+
+---
+
+## Which Commands Should You Learn?
+
+<!-- dotfiles: configuration files, usually, they're starting with a dot in the file name or the folder name, hence the name -->
+
+- [`chezmoi`](https://github.com/twpayne/chezmoi): dotfiles manager
+- [`starship`](https://github.com/starship/starship): shell theming and customization
+- [`gh`](https://github.com/cli/cli): github-cli
+- [`fzf`](https://github.com/junegunn/fzf): General purpose command-line fuzzy finder
+- [`lazygit`](https://github.com/jesseduffield/lazygit): Simple TUI for `git`
+- [`yazi`](https://github.com/sxyazi/yazi): TUI file manager
 
 ---
 
@@ -652,6 +668,8 @@ Ask me, Ask Stack Overflow, Ask Github Discussion, Ask Chat GPT,...
 - [tmux-cheat-sheet](https://tmuxai.dev/tmux-cheat-sheet/)
 - [ohshitgit](https://ohshitgit.com/)
 - [everything-curl](https://everything.curl.dev/)
+- [awesome-cli-apps](https://github.com/agarrharr/awesome-cli-apps)
+- [awesome-tuis](https://github.com/rothgar/awesome-tuis)
 
 ---
 
