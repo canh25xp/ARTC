@@ -452,14 +452,21 @@ It's time to move on to some commands that will actually boot your productivity.
 ## Which Commands Should You Learn?
 
 <style scoped>
-section {
-    font-size: 24px;
+section ul {
+    font-size: 22px;
 }
 </style>
 
 <!--
 These commands are meant to be a Drop-in Replacement for their successor.
-With prettier output, better behaviour , more intuitive cli, improve performance, saner defaults.
+The improvement could be:
+- prettier output
+- better behaviour
+- saner defaults
+- more intuitive cli
+- improve performance
+- external integration
+
 Overall, you're probably doing fine without these.
 But having them just gonna make your Terminal experiences much more comfortable.
 -->
@@ -469,13 +476,13 @@ But having them just gonna make your Terminal experiences much more comfortable.
 - **`cd` → `zoxide`**: Smarter directory jumping based on usage frequency.
 - **`cp` → `rsync`**: Incremental copying, resume support, progress, remote sync.
 - **`rm` → `rip`**: Safer deletes with trash support and recovery.
-- **`grep` → `rg`**: Much faster search, respects `.gitignore`, better defaults.
+- **`grep` → `rg`**: Faster, respects `.gitignore`, better defaults.
 - **`find` → `fd`**: Simpler syntax, faster search, sensible defaults.
 - **`sed` → `sd`**: Clearer find-and-replace syntax, safer by default.
 - **`top` → `btm`**: Modern TUI, mouse support, multiple views, better visuals.
 - **`curl` → `curlie`, `http`**: Human-friendly syntax, readable output, JSON highlighting.
 - **`diff` → `delta`**: Syntax highlighting, side-by-side diff, git-aware output.
-- **`du` → `dust`, `gdu`**: Faster disk usage scanning, clearer summaries, better visuals.
+- **`du` → `dust`, `gdu`**: Faster scanning, clearer summaries, better visuals.
 - **`df` → `duf`**: Clean table layout, human-readable sizes, filesystem filtering.
 - **`ps` → `procs`**: Colored output, tree view, more readable process info.
 
