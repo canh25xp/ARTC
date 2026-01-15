@@ -414,6 +414,8 @@ Now that you know most basic to intermediate commands.
 It's time to move on to some commands that will actually boot your productivity.
 -->
 
+### My everyday commands
+
 - [`ssh`](https://www.openssh.com/), [`tmux`](https://github.com/tmux/tmux), [`nvim`](https://github.com/neovim/neovim), [`git`](https://github.com/git/git)
 - [`chezmoi`](https://github.com/twpayne/chezmoi), [`starship`](https://github.com/starship/starship), [`gh`](https://github.com/cli/cli), [`fzf`](https://github.com/junegunn/fzf), [`lazygit`](https://github.com/jesseduffield/lazygit), [`yazi`](https://github.com/sxyazi/yazi)
 - [`bat`](https://github.com/sharkdp/bat), [`eza`](https://github.com/eza-community/eza), [`zoxide`](https://github.com/ajeetdsouza/zoxide), [`rsync`](https://rsync.samba.org/), [`rip`](https://github.com/MilesCranmer/rip2), [`rg`](https://github.com/BurntSushi/ripgrep), [`fd`](https://github.com/sharkdp/fd), [`sd`](https://github.com/chmln/sd), [`btm`](https://github.com/ClementTsang/bottom), [`curlie`](https://github.com/rs/curlie), [`http`](https://github.com/httpie/cli), [`delta`](https://github.com/dandavison/delta), [`dust`](https://github.com/bootandy/dust), [`gdu`](https://github.com/dundee/gdu), [`duf`](https://github.com/muesli/duf), [`procs`](https://github.com/dalance/procs)
@@ -730,4 +732,4 @@ Ask me, Ask Stack Overflow, Ask Github Discussion, Ask Chat GPT,...
 
 ## Thank You !
 
-Feel free to have leave any question
+Feel free to leave any question
