@@ -25,7 +25,7 @@ To be teach you all of it is impossible.
 
 - [What is CLI ?](#3)
 - [Why Bother Learning CLI ?](#5)
-- [Structure of a command](#9)
+- [Basic of CLI](#9)
 - [Which Commands Should You Learn?](#19)
 - [How to Learn CLI?](#27)
 - [Tips and tricks](#37)
@@ -144,7 +144,7 @@ fzf --preview "bat {}" --query $query -1 -0
 
 ---
 
-## Structure of a command
+## Basic of CLI
 
 <style scoped>
 section {
@@ -173,7 +173,7 @@ command --flag value first second third
 
 ---
 
-## Structure of a command
+## Basic of CLI
 
 <!-- Some command comes with a variety of **subcommand** -->
 
@@ -196,18 +196,22 @@ gh repo fork canh25xp/ARTC
 
 ---
 
-## Shell Expansion Happens First
+## Basic of CLI
 
-- The shell rewrites many arguments **before** launching your program.
-- **Pathname/glob**: `*.c` becomes every matching file in the current directory.
-- **Variable/tilde**: `$HOME` or `~` are replaced with your home path.
-- **Arithmetic**: `$((1 + 2))` is calculated by the shell, not the program.
-- **Command substitution**: `$(pwd)` runs a command, the output becomes the argument.
-- Quote arguments to opt out of specific expansions: `"*.c"` stays literal.
+### Shell expansions
+
+<!-- The shell rewrites many arguments **before** launching your program. -->
+
+- **Pathname/glob**: `*.c`, `**/*.c`
+- **Variable/tilde**: `$HOME`, `~`, `$env`
+- **Arithmetic**: `$((1 + 2))`,
+- **Command substitution**: `$(pwd)`
 
 ---
 
-## Inspect What Your Program Receives
+## Basic of CLI
+
+### Shell expansions
 
 ```c
 // test.c
@@ -223,24 +227,30 @@ Compile and run with `gcc ./demo/shell-expansion/test.c -o test && ./test *.md`
 
 ---
 
-## Demo: Shell vs Program
+## Basic of CLI
+
+### Shell expansions
+
+Quote arguments to opt out of specific expansions
 
 ```bash
 $ ./test *.md $((1+2))
-argv[0] = './args'
+argv[0] = './test'
 argv[1] = 'cheat-sheet.md'
 argv[2] = 'slide.md'
 argv[3] = '3'
 
 $ ./test "*.md" '$((1+2))'
-argv[0] = './args'
+argv[0] = './test'
 argv[1] = '*.md'
 argv[2] = '$((1+2))'
 ```
 
 ---
 
-## Demo: Shell vs Program
+## Basic of CLI
+
+### Shell expansions
 
 What about this case ?
 
@@ -249,7 +259,7 @@ Here, since `p4*` does not match any filename under current working directory.
 So the arguments is parse literally and `apt` responsible for expand the package name.
 -->
 
-```bash
+```sh
 $ apt list p4*
 p4-cli/noble,now 2025.2-2852709~noble amd64 [installed,automatic]
 p4-proxy/noble 2025.2-2852709~noble amd64
@@ -260,7 +270,7 @@ Try `touch p4v` and run `apt list p4*` again. The command now return nothing.
 
 ---
 
-## Structure of a command
+## Basic of CLI
 
 ### Some special cases
 
@@ -274,7 +284,7 @@ command --flag=value first second third
 
 ---
 
-## Structure of a command
+## Basic of CLI
 
 ### Some special cases
 
@@ -291,7 +301,7 @@ and long flag come after a double dash `--`.
 
 ---
 
-## Structure of a command
+## Basic of CLI
 
 ### Some special cases
 
@@ -311,7 +321,7 @@ command -abc first second third # Same as above
 
 ---
 
-## Structure of a command
+## Basic of CLI
 
 ### Some special cases
 
