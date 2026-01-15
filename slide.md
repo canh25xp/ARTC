@@ -146,23 +146,20 @@ fzf --preview "bat {}" --query $query -1 -0
 
 ## Basic of CLI
 
-<style scoped>
-section {
-    font-size: 32px;
-}
-</style>
-
 <!--
-Most of the times, a command look something like this
+Most of the times, a command look something like this.
+
+Everything come after the command are called arguments.
+
+Where first, second, third is called positional arguments.
 -->
 
 ```sh
 command --flag value first second third
-#                   positional arguments
 ```
 
 <!-- prettier-ignore -->
-* **command** could be one of these type:
+- **command** could be one of these type:
   * An **_executable_**:
     * A **_binary_**: `ls`, `grep`, `cat`, `cp`, `mv`, `git`, `p4`, `curl`,... `*.exe`
     * A **_script_**: `*.sh`, `*.ps1`, `*.bat`, `*.vbs`
@@ -193,80 +190,6 @@ Some applications has many nested **subcommand**
 gh repo clone canh25xp/ARTC
 gh repo fork canh25xp/ARTC
 ```
-
----
-
-## Basic of CLI
-
-### Shell expansions
-
-<!-- The shell rewrites many arguments **before** launching your program. -->
-
-- **Pathname/glob**: `*.c`, `**/*.c`
-- **Variable/tilde**: `$HOME`, `~`, `$env`
-- **Arithmetic**: `$((1 + 2))`,
-- **Command substitution**: `$(pwd)`
-
----
-
-## Basic of CLI
-
-### Shell expansions
-
-```c
-// test.c
-#include <stdio.h>
-int main(int argc, char *argv[]) {
-  for (int i = 0; i < argc; i++)
-    printf("argv[%d] = %s\n", i, argv[i]);
-  return 0;
-}
-```
-
-Compile and run with `gcc ./demo/shell-expansion/test.c -o test && ./test *.md`
-
----
-
-## Basic of CLI
-
-### Shell expansions
-
-Quote arguments to opt out of specific expansions
-
-```bash
-$ ./test *.md $((1+2))
-argv[0] = './test'
-argv[1] = 'cheat-sheet.md'
-argv[2] = 'slide.md'
-argv[3] = '3'
-
-$ ./test "*.md" '$((1+2))'
-argv[0] = './test'
-argv[1] = '*.md'
-argv[2] = '$((1+2))'
-```
-
----
-
-## Basic of CLI
-
-### Shell expansions
-
-What about this case ?
-
-<!--
-Here, since `p4*` does not match any filename under current working directory.
-So the arguments is parse literally and `apt` responsible for expand the package name.
--->
-
-```sh
-$ apt list p4*
-p4-cli/noble,now 2025.2-2852709~noble amd64 [installed,automatic]
-p4-proxy/noble 2025.2-2852709~noble amd64
-p4-server/noble 2025.2-2852709~noble amd64
-```
-
-Try `touch p4v` and run `apt list p4*` again. The command now return nothing.
 
 ---
 
@@ -337,6 +260,82 @@ For example:
 ```sh
 7z x archive.zip -oOutput
 ```
+
+---
+
+## Basic of CLI
+
+### Shell expansions
+
+<!-- The shell rewrites many arguments **before** launching your program. -->
+
+- **Pathname/glob**: `*.c`, `**/*.c`
+- **Variable/tilde**: `$HOME`, `~`, `$env`
+- **Arithmetic**: `$((1 + 2))`,
+- **Command substitution**: `$(pwd)`
+
+These arguments are handle by the shell, not the program
+
+---
+
+## Basic of CLI
+
+### Shell expansions
+
+```c
+// test.c
+#include <stdio.h>
+int main(int argc, char *argv[]) {
+  for (int i = 0; i < argc; i++)
+    printf("argv[%d] = %s\n", i, argv[i]);
+  return 0;
+}
+```
+
+Compile and run with `gcc ./demo/shell-expansion/test.c -o test && ./test *.md`
+
+---
+
+## Basic of CLI
+
+### Shell expansions
+
+Quote arguments to opt out of specific expansions
+
+```bash
+$ ./test *.md $((1+2))
+argv[0] = './test'
+argv[1] = 'cheat-sheet.md'
+argv[2] = 'slide.md'
+argv[3] = '3'
+
+$ ./test "*.md" '$((1+2))'
+argv[0] = './test'
+argv[1] = '*.md'
+argv[2] = '$((1+2))'
+```
+
+---
+
+## Basic of CLI
+
+### Shell expansions
+
+What about this case ?
+
+<!--
+Here, since `p4*` does not match any filename under current working directory.
+So the arguments is parse literally and `apt` responsible for expand the package name.
+-->
+
+```sh
+$ apt list p4*
+p4-cli/noble,now 2025.2-2852709~noble amd64 [installed,automatic]
+p4-proxy/noble 2025.2-2852709~noble amd64
+p4-server/noble 2025.2-2852709~noble amd64
+```
+
+Try `touch p4v` and run `apt list p4*` again. The command now return nothing.
 
 ---
 
