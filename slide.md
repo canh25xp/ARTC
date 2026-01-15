@@ -473,6 +473,32 @@ But having them just gonna make your Terminal experiences much more comfortable.
 
 ---
 
+<style scoped>
+table {
+    margin-left: auto;
+    margin-right: auto;
+    font-size: 24px;
+}
+</style>
+
+## Which Commands Should You Learn?
+
+|          | Open-source | Multi-Provider | Local | Stars                                                                  |
+| -------- | ----------- | -------------- | ----- | ---------------------------------------------------------------------- |
+| gemini   | ✅          | ❌             | ❌    | ![Stars](https://img.shields.io/github/stars/google-gemini/gemini-cli) |
+| codex    | ✅          | ❌             | ✅    | ![Stars](https://img.shields.io/github/stars/openai/codex)             |
+| claude   | ❌          | ❌             | ❌    | ![Stars](https://img.shields.io/github/stars/anthropics/claude-code)   |
+| qwen     | ✅          | ✅             | ❌    | ![Stars](https://img.shields.io/github/stars/QwenLM/qwen-code)         |
+| copilot  | ❌          | ✅             | ❌    | ![Stars](https://img.shields.io/github/stars/github/copilot-cli)       |
+| opencode | ✅          | ✅             | ✅    | ![Stars](https://img.shields.io/github/stars/sst/opencode)             |
+| crush    | ✅          | ✅             | ✅    | ![Stars](https://img.shields.io/github/stars/charmbracelet/crush)      |
+| cline    | ✅          | ✅             | ✅    | ![Stars](https://img.shields.io/github/stars/cline/cline)              |
+
+Multi-Provider: models from Anthropic, OpenAI, OpenRouter, ...
+Local: Can run local model via Ollama or LM studio
+
+---
+
 ## How to Learn CLI?
 
 ### Learn how to get help
