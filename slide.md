@@ -396,6 +396,19 @@ Learn to **search**, **list**, **install** and **uninstall** packages.
 
 ## Which Commands Should You Learn?
 
+### Package managers
+
+In `apt`, some language specific package start with prefix.
+For example:
+`gem install github-linguist` -> `apt install ruby-github-linguist`
+`pip3 install ruff` -> `apt install python3-ruff`
+
+So check the package with apt first before install with the language package manager.
+
+---
+
+## Which Commands Should You Learn?
+
 <!--
 Now that you know most basic to intermediate commands.
 It's time to move on to some commands that will actually boot your productivity.
