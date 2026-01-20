@@ -23,12 +23,18 @@ To be teach you all of it is impossible.
 
 ![bg blur:3px](./assets/cmatrix.gif)
 
-- [What is CLI ?](#3)
-- [Why Bother Learning CLI ?](#5)
-- [Basic of CLI](#9)
-- [Which Commands Should You Learn?](#19)
-- [How to Learn CLI?](#27)
-- [Tips and tricks](#37)
+<!-- - [What is CLI ?](#3) -->
+<!-- - [Why Bother Learning CLI ?](#5) -->
+<!-- - [Basic of CLI](#9) -->
+<!-- - [Which Commands Should You Learn?](#19) -->
+<!-- - [How to Learn CLI?](#27) -->
+<!-- - [Tips and tricks](#37) -->
+
+- What is CLI
+- Basic of CLI
+- Which Commands Should You Learn
+- How to Learn CLI
+- Tips and tricks
 
 ---
 
@@ -63,14 +69,22 @@ Some applications is a mixture of both CLI and GUI (`code --help`)
 
 ## Why Bother Learning CLI ?
 
-- Full access to applications
-- Many GUIs are built on CLI counterparts:
-  `p4` and `p4v`, `git` and `git-gui`
-- Sometimes CLI is all you have:
-  **Remote SSH** , **Cloud access** , **Container connections**
-- Some applications only have CLI
-- Scripting and Automation
-- Fast and Lightweight
+<!-- Khả năng tiếp cận -->
+<!-- Khả năng tái hiện -->
+<!-- Khả năng mở rộng -->
+<!-- Tự động hóa -->
+<!-- Hiệu năng -->
+
+- Accessibility <!-- Sometimes CLI is all you have:
+Remote SSH, Cloud access, Container connections...
+Some applications only have CLI.
+Some applications are built on top of their CLI counterparts but only CLI give you full access and control (p4 vs p4v, git vs git-gui) -->
+- Reproducibility <!-- Whether reporting an issue or documenting a guide,
+A sequence of commands is just easier to reproduce than a list of screenshots. -->
+- Extensibility <!-- Easily extend with other applications:
+chezmoi and fzf, pass and git, ... -->
+- Automation <!-- Automate tasks via scripting -->
+- Performance <!-- Fast and Lightweight -->
 
 ---
 
