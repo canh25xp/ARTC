@@ -31,6 +31,7 @@ To be teach you all of it is impossible.
 <!-- - [Tips and tricks](#37) -->
 
 - What is CLI
+- Why using CLI ?
 - Basic of CLI
 - Which Commands Should You Learn
 - How to Learn CLI
@@ -43,27 +44,15 @@ To be teach you all of it is impossible.
 A CLI application is:
 Any applications that you can interact with it from the Shell.
 
-- **CLI**: Command Line Interface `git`, `p4`, `odin4`
-- **GUI**: Graphical User Interface `git-gui`, `p4v`, `odin4v`
-- **TUI**: Text User Interface `lazygit`, `vim` <!-- Sometimes known as Terminal User Interface-->
+<!-- prettier-ignore -->
+* **CLI**: Command Line Interface `git`, `p4`, `odin4`
+* **GUI**: Graphical User Interface `git-gui`, `p4v`, `odin4v`
+* **TUI**: Text User Interface `lazygit`, `vim` <!-- Sometimes known as Terminal User Interface. TUI is a subset of CLI-->
 
-> [!NOTE]
-> TUI is a subset of CLI
-
----
-
-<!-- Left: (lazygit) GUI Right: (git) CLI -->
-
-![bg](./assets/cli-tui.png)
-
----
-
-## What is CLI ?
+<!-- Some applications is a mixture of both CLI and GUI (`code --help`) -->
 
 By interact I mean it should at least have a help menu.
 That is, you should be able to open help by using 1 of the following flag: `--help`, `-h`, `-help`, `help`, `/?`, `/help`.
-
-Some applications is a mixture of both CLI and GUI (`code --help`)
 
 ---
 
@@ -76,15 +65,17 @@ Some applications is a mixture of both CLI and GUI (`code --help`)
 <!-- Hiệu năng -->
 
 - Accessibility <!-- Sometimes CLI is all you have:
-Remote SSH, Cloud access, Container connections...
-Some applications only have CLI.
-Some applications are built on top of their CLI counterparts but only CLI give you full access and control (p4 vs p4v, git vs git-gui) -->
+  Remote SSH, Cloud access, Container connections...
+  Some applications only have CLI.
+  Some applications are built on top of their CLI counterparts but only CLI give you full access and control (p4 vs p4v, git vs git-gui) -->
 - Reproducibility <!-- Whether reporting an issue or documenting a guide,
-A sequence of commands is just easier to reproduce than a list of screenshots. -->
+  A sequence of commands is just easier to reproduce than a list of screenshots. -->
 - Extensibility <!-- Easily extend with other applications:
-chezmoi and fzf, pass and git, ... -->
+  chezmoi and fzf, pass and git, ... -->
 - Automation <!-- Automate tasks via scripting -->
 - Performance <!-- Fast and Lightweight -->
+
+* Make you cooler😎
 
 ---
 
