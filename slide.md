@@ -21,7 +21,7 @@ To be teach you all of it is impossible.
 
 ## Table of Contents
 
-![bg left](./assets/cmatrix.gif)
+![bg blur:3px](./assets/cmatrix.gif)
 
 - [What is CLI ?](#3)
 - [Why Bother Learning CLI ?](#5)
@@ -434,6 +434,9 @@ It's time to move on to some commands that will actually boot your productivity.
 
 - Now this is a fairly long list, which would be impossible to cover all of it.
   So I will just demonstrate each one in my Terminal as I speak.
+
+- The last list is all AI agents in the terminal that I know, you don't necessary have to use all of it.
+  Just try them out and sticks to the one that you like the best.
 -->
 
 ---
