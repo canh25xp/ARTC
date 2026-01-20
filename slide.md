@@ -380,7 +380,7 @@ It's time to move on to some commands that will actually boot your productivity.
 - [`ssh`](https://www.openssh.com/), [`tmux`](https://github.com/tmux/tmux), [`nvim`](https://github.com/neovim/neovim), [`git`](https://github.com/git/git)
 - [`chezmoi`](https://github.com/twpayne/chezmoi), [`starship`](https://github.com/starship/starship), [`gh`](https://github.com/cli/cli), [`fzf`](https://github.com/junegunn/fzf), [`lazygit`](https://github.com/jesseduffield/lazygit), [`yazi`](https://github.com/sxyazi/yazi)
 - [`bat`](https://github.com/sharkdp/bat), [`eza`](https://github.com/eza-community/eza), [`zoxide`](https://github.com/ajeetdsouza/zoxide), [`rsync`](https://rsync.samba.org/), [`rip`](https://github.com/MilesCranmer/rip2), [`rg`](https://github.com/BurntSushi/ripgrep), [`fd`](https://github.com/sharkdp/fd), [`sd`](https://github.com/chmln/sd), [`btm`](https://github.com/ClementTsang/bottom), [`curlie`](https://github.com/rs/curlie), [`http`](https://github.com/httpie/cli), [`delta`](https://github.com/dandavison/delta), [`dust`](https://github.com/bootandy/dust), [`gdu`](https://github.com/dundee/gdu), [`duf`](https://github.com/muesli/duf), [`procs`](https://github.com/dalance/procs)
-- [`ffmpeg`](https://github.com/FFmpeg/FFmpeg), [`pandoc`](https://github.com/jgm/pandoc), [`jq`](https://github.com/jqlang/jq), [`yq`](https://github.com/kislyuk/yq)
+- [`ffmpeg`](https://github.com/FFmpeg/FFmpeg), [`pandoc`](https://github.com/jgm/pandoc), [`jq`](https://github.com/jqlang/jq), [`yq`](https://github.com/kislyuk/yq), [`mlr`](https://github.com/johnkerl/miller)
 - [`yt-dlp`](https://github.com/yt-dlp/yt-dlp), [`instaloader`](https://github.com/instaloader/instaloader), [`spotdl`](https://github.com/spotDL/spotify-downloader), [`spotify-tui`](https://github.com/Rigellute/spotify-tui), [`trans`](https://github.com/soimort/translate-shell)
 - [`codex`](https://github.com/openai/codex), [`gemini`](https://github.com/google-gemini/gemini-cli), [`claude`](https://github.com/anthropics/claude-code), [`qwen`](https://github.com/QwenLM/qwen-code), [`copilot`](https://github.com/github/copilot-cli), [`opencode`](https://github.com/sst/opencode), [`cline`](https://github.com/cline/cline), [`crush`](https://github.com/charmbracelet/crush)
 
@@ -462,6 +462,7 @@ But having them just gonna make your Terminal experiences much more comfortable.
   - `ffprobe`: analysis and inspect multimedia content.
 - `pandoc`: Documents converting (*.md, *.pdf, *.tex, *.html, ...)
 - `jq`, `yq`: Processor for structured data (json, yaml, xml, toml, ...)
+- `mlr`: Processor for tabular data (csv, tsv, ...)
 
 ---
 
