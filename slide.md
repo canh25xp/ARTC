@@ -56,7 +56,7 @@ That is, you should be able to open help by using 1 of the following flag: `--he
 
 ---
 
-## Why Bother Learning CLI ?
+## Why using CLI ?
 
 <!-- Khả năng tiếp cận -->
 <!-- Khả năng tái hiện -->
@@ -79,7 +79,15 @@ That is, you should be able to open help by using 1 of the following flag: `--he
 
 ---
 
-## Terminal vs Shell
+## Basic of CLI
+
+- Terminal vs Shell
+- `pwsh` vs `bash`
+- Structure of CLI
+
+---
+
+### Terminal vs Shell
 
 If your **keyboard** is a **pen** then the **terminal** is your **notebook**, and **shell** is the **page**.
 
@@ -90,7 +98,7 @@ A **terminal** might allows you to run many different **shell**, run many **shel
 
 ---
 
-## `pwsh` vs `bash`
+### `pwsh` vs `bash`
 
 <style scoped>
 table {
@@ -117,7 +125,7 @@ Meaning it support proper error handling, and blabla
 
 ---
 
-## `pwsh` vs `bash`
+### `pwsh` vs `bash`
 
 Cmdlet have the advantages of being well integrated into powershell but that's also it's weaknesses: it cannot be used independently.
 Meaning other tool cannot use it directly.
@@ -133,7 +141,7 @@ fzf --preview "bat {}" --query $query -1 -0
 
 ---
 
-## Basic of CLI
+### Structure of CLI
 
 <!--
 Most of the times, a command look something like this.
@@ -159,7 +167,7 @@ command --flag value first second third
 
 ---
 
-## Basic of CLI
+### Structure of CLI
 
 <!-- Some command comes with a variety of **subcommand** -->
 
@@ -182,29 +190,25 @@ gh repo fork canh25xp/ARTC
 
 ---
 
-## Basic of CLI
-
-### Some special cases
-
-To reduce ambiguity between the value of a flag and a positional arguments, some applications use the **key=value** pair
+### Structure of CLI
 
 ```sh
 command --flag=value first second third
 ```
 
+To reduce ambiguity between the value of a flag and a positional arguments, some applications use the **key=value** pair
+
 <!-- Here the `--flag` arguments is shorten to `-f` -->
 
 ---
 
-## Basic of CLI
-
-### Some special cases
-
-Shorten flags
+### Structure of CLI
 
 ```sh
 command -f value first second third
 ```
+
+Sometimes, flags can be **shorten** to a single letter.
 
 Most of the time, shorten flags come after a single dash `-`,
 and long flag come after a double dash `--`.
@@ -213,18 +217,14 @@ and long flag come after a double dash `--`.
 
 ---
 
-## Basic of CLI
-
-### Some special cases
-
-Boolean flags (or switches)
+### Structure of CLI
 
 ```sh
 command --bool first second third
 command -b first second third
 ```
 
-Shorten boolean flags sometimes grouped together
+Flags that don't require a value is called Boolean flags (or switches)
 
 ```sh
 command -a -b -c first second third
@@ -233,26 +233,22 @@ command -abc first second third # Same as above
 
 ---
 
-## Basic of CLI
-
-### Some special cases
-
-Sometimes, cli applications allow flag and value sticks together
+### Structure of CLI
 
 ```sh
 command -f value first second third
 command -fvalue first second third
 ```
 
-For example:
+Sometimes, cli applications allow flag and value sticks together:
 
 ```sh
 7z x archive.zip -oOutput
+gcc -O2 -Wall -I/usr/include -L/usr/lib -lm
+p4 changes -m1
 ```
 
 ---
-
-## Basic of CLI
 
 ### Shell expansions
 
@@ -266,8 +262,6 @@ For example:
 These arguments are handle by the shell, not the program
 
 ---
-
-## Basic of CLI
 
 ### Shell expansions
 
@@ -284,8 +278,6 @@ int main(int argc, char *argv[]) {
 Compile and run with `gcc ./demo/shell-expansion/test.c -o test && ./test *.md`
 
 ---
-
-## Basic of CLI
 
 ### Shell expansions
 
@@ -305,8 +297,6 @@ argv[2] = '$((1+2))'
 ```
 
 ---
-
-## Basic of CLI
 
 ### Shell expansions
 
@@ -332,11 +322,9 @@ Try `touch p4v` and run `apt list p4*` again. The command now return nothing.
 
 There's about **155** standard UNIX commands ([Wikipedia](https://en.wikipedia.org/wiki/List_of_POSIX_commands))
 
-![w:900 center](./assets/POSIX-commands.png)
+![w:900 center](./assets/POSIX-commands.gif)
 
 ---
-
-## Which Commands Should You Learn?
 
 ### Basic commands
 
@@ -344,29 +332,22 @@ There's about **155** standard UNIX commands ([Wikipedia](https://en.wikipedia.o
 But to get started, these are the 15 commands that I think you should get familiar with.
 -->
 
-File management: `touch`, `mkdir`, `cat`, `cp`, `mv`, `rm`, `file`, `grep`
-
-Navigation: `cd`, `pwd`, `ls`
-
-Process management: `ps`, `kill`
-
-Shell manipulation: `exit`, `clear`
+- File management: `touch`, `mkdir`, `cat`, `cp`, `mv`, `rm`, `file`, `grep`
+- Navigation: `cd`, `pwd`, `ls`
+- Process management: `ps`, `kill`
+- Shell manipulation: `exit`, `clear`
 
 ---
-
-## Which Commands Should You Learn?
 
 ### Intermediate commands
 
-Data manipulating: `sort`, `uniq`, `cut`, `paste`, `join`, `awk`, `sed`.
-System monitoring: `top`, `htop`
-Data transferring: `curl`, `wget`
-Networking: `netstat`, `ifconfig`, `ipconfig`
-Disk management: `du`, `df`
+- Data manipulating: `sort`, `uniq`, `cut`, `paste`, `join`, `awk`, `sed`.
+- System monitoring: `top`, `htop`
+- Data transferring: `curl`, `wget`
+- Networking: `netstat`, `ifconfig`, `ipconfig`
+- Disk management: `du`, `df`
 
 ---
-
-## Which Commands Should You Learn?
 
 ### Package managers
 
@@ -381,22 +362,13 @@ Learn to **search**, **list**, **install** and **uninstall** packages.
 - Ubuntu/Debian: `apt`, `snap`, `flatpak`
 - Language specific: `cargo`, `go`, `npm`, `pip`
 
----
-
-## Which Commands Should You Learn?
-
-### Package managers
-
-In `apt`, some language specific package start with prefix.
-For example:
+In `apt`, some language specific package start with prefix:
 `gem install github-linguist` -> `apt install ruby-github-linguist`
 `pip3 install ruff` -> `apt install python3-ruff`
 
-So check the package with apt first before install with the language package manager.
+<!-- So check the package with apt first before install with the language package manager. -->
 
 ---
-
-## Which Commands Should You Learn?
 
 <!--
 Now that you know most basic to intermediate commands.
@@ -430,7 +402,7 @@ It's time to move on to some commands that will actually boot your productivity.
 
 ---
 
-## Which Commands Should You Learn?
+#### Some great cli/tui tools
 
 <!-- dotfiles: configuration files, usually, they're starting with a dot in the file name or the folder name, hence the name -->
 
@@ -443,7 +415,7 @@ It's time to move on to some commands that will actually boot your productivity.
 
 ---
 
-## Which Commands Should You Learn?
+#### Some awesome alternative
 
 <style scoped>
 section ul {
@@ -482,17 +454,28 @@ But having them just gonna make your Terminal experiences much more comfortable.
 
 ---
 
-## Which Commands Should You Learn?
+#### Some data manipulating and processing
 
-[`ffmpeg`](https://github.com/FFmpeg/FFmpeg): A collection of libraries and tools to process multimedia: images, audio, video, subtitles, ...
-
-- `ffmpeg`: manipulate, convert and stream multimedia content.
-- `ffplay`: minimal multimedia player.
-- `ffprobe`: analysis and inspect multimedia content.
+- `ffmpeg`: A collection of libraries and tools to process multimedia: images, audio, video, subtitles, ...
+  - `ffmpeg`: manipulate, convert and stream multimedia content.
+  - `ffplay`: minimal multimedia player.
+  - `ffprobe`: analysis and inspect multimedia content.
+- `pandoc`: Documents converting (*.md, *.pdf, *.tex, *.html, ...)
+- `jq`, `yq`: Processor for structured data (json, yaml, xml, toml, ...)
 
 ---
 
 ![bg](demo/ffmpeg/ffmpeg.gif)
+
+---
+
+#### Some domain specific tools
+
+- `yt-dlp`: Youtube downloader
+- `spotdl`: Spotify downloader
+- `spotify-tui`: Spotify TUI client
+- `instaloader`: Instagram downloader (profile, story, reels, ...)
+- `trans`: Google translate
 
 ---
 
@@ -504,7 +487,8 @@ table {
 }
 </style>
 
-## Which Commands Should You Learn?
+
+#### Some AI agents
 
 |          | Open-source | Multi-Provider | Local | Stars                                                                  |
 | -------- | ----------- | -------------- | ----- | ---------------------------------------------------------------------- |
@@ -522,7 +506,13 @@ Local: Can run local model via Ollama or LM studio
 
 ---
 
-## How to Learn CLI?
+## How to Learn CLI ?
+
+- Learn how to get help
+- Learn how to edit
+- Learn how to config
+
+---
 
 ### Learn how to get help
 
@@ -535,8 +525,6 @@ Use the cli builtin help page.
 
 ---
 
-## How to Learn CLI?
-
 ### Learn how to get help
 
 Use system's Manual
@@ -548,8 +536,6 @@ Use system's Manual
 
 ---
 
-## How to Learn CLI?
-
 ### Learn how to get help
 
 Use cheatsheet
@@ -559,8 +545,6 @@ Use cheatsheet
 
 ---
 
-## How to Learn CLI?
-
 ### Learn how to edit commands
 
 - Tab completions: `Tab`, `Shift+Tab`, `Ctrl+space`
@@ -569,8 +553,6 @@ Use cheatsheet
 - Visual Edit: `Ctrl+x Ctrl+e`
 
 ---
-
-## How to Learn CLI?
 
 ### Learn how to config commands
 
@@ -584,9 +566,7 @@ Highest &rarr; Lowest
 
 ---
 
-## How to Learn CLI?
-
-### Recommended config
+#### Recommended config
 
 Turn on case insensitive completion
 
@@ -600,9 +580,7 @@ So that `cd down` with TAB completion to `cd Downloads`.
 
 ---
 
-## How to Learn CLI?
-
-### Recommended config
+#### Recommended config
 
 Make TAB completion cycle through all matches.
 
@@ -617,9 +595,7 @@ If there are multiple matches for completion, Tab and Shift-Tab should cycle thr
 
 ---
 
-## How to Learn CLI?
-
-### Recommended config
+#### Recommended config
 
 Make history navigation easier
 
@@ -634,9 +610,7 @@ So that you don't have to spam up key to find a commands.
 
 ---
 
-## How to Learn CLI?
-
-### Recommended config
+#### Recommended config
 
 Make `pwsh` keybinding more similar to `bash`
 
@@ -650,9 +624,7 @@ By changing to 'emacs' mode, you'll get a closer experiences to `bash`.
 
 ---
 
-## How to Learn CLI?
-
-### Recommended config
+#### Recommended config
 
 Edit current command with $env:EDITOR like edit-and-execute-command in `bash`
 
@@ -664,11 +636,11 @@ Set-PSReadLineKeyHandler -Chord 'Ctrl+x,Ctrl+e' -Function ViEditVisually
 
 ---
 
-## How to Learn CLI?
+## Tips and tricks
 
-### Tips and tricks
+---
 
-Understand Command Names
+### Understand Command Names
 
 For example, `grep`:
 
@@ -680,11 +652,7 @@ grep -E "[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}" *.md
 
 ---
 
-## How to Learn CLI?
-
-### Tips and tricks
-
-Don't Copy-Paste Blindly
+### Don't Copy-Paste Blindly
 
 <!--
 When you're learning CLI, DO NOT copy-paste random script from Reddit.
@@ -699,11 +667,7 @@ Although later I learnt that you can actually revert the `git revert` command it
 
 ---
 
-## How to Learn CLI?
-
-### Tips and tricks
-
-Don't hesitate to ask!
+### Don't hesitate to ask!
 
 Ask me, Ask Stack Overflow, Ask Github Discussion, Ask Chat GPT,...
 
