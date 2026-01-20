@@ -12,6 +12,8 @@ size: 16:9
 git apply --ignore-space-change --ignore-whitespace --whitespace=nowarn --allow-empty f1968cb.diff
 ```
 
+<!-- GGG: Get Good at Git -->
+
 ---
 
 ## All `git` subcommands
