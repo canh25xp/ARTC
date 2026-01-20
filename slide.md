@@ -79,22 +79,6 @@ That is, you should be able to open help by using 1 of the following flag: `--he
 
 ---
 
-## Why Bother Learning CLI ?
-
-<!--
-I cannot forget the day that my TL ask everyone in my team to apply a diff patch file manually.
-Mind you, the patch was contains like 100 changed files with over thousand lines of code.
-To be fair, we only use `p4` as the version control system, so it is understandable that the patch file meant to be apply with `git`.
--->
-
-Applying a large patch:
-
-```bash
-git apply --ignore-space-change --ignore-whitespace --whitespace=nowarn --allow-empty f1968cb.diff
-```
-
----
-
 ## Terminal vs Shell
 
 If your **keyboard** is a **pen** then the **terminal** is your **notebook**, and **shell** is the **page**.

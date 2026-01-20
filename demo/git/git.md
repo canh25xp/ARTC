@@ -8,6 +8,12 @@ size: 16:9
 
 # Git
 
+<!--
+I cannot forget the day that my TL ask everyone in my team to apply a diff patch file manually.
+Mind you, the patch was contains like 100 changed files with over thousand lines of code.
+To be fair, we only use `p4` as the version control system, so it is understandable that the patch file meant to be apply with `git`.
+-->
+
 ```bash
 git apply --ignore-space-change --ignore-whitespace --whitespace=nowarn --allow-empty f1968cb.diff
 ```
