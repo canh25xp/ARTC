@@ -501,7 +501,7 @@ But having them just gonna make your Terminal experiences much more comfortable.
   - `ffmpeg`: manipulate, convert and stream multimedia content.
   - `ffplay`: minimal multimedia player.
   - `ffprobe`: analysis and inspect multimedia content.
-- `pandoc`: Documents converting (*.md, *.pdf, *.tex, *.html, ...)
+- `pandoc`: Documents converting (_.md, _.pdf, _.tex, _.html, ...)
 - `jq`, `yq`: Processor for structured data (json, yaml, xml, toml, ...)
 - `mlr`: Processor for tabular data (csv, tsv, ...)
 
@@ -528,7 +528,6 @@ table {
     font-size: 24px;
 }
 </style>
-
 
 #### Some AI agents
 
@@ -682,17 +681,7 @@ Set-PSReadLineKeyHandler -Chord 'Ctrl+x,Ctrl+e' -Function ViEditVisually
 
 ---
 
-### Understand Command Names
-
-For example, `grep`:
-
-- `g/re/p`: Globally search for a Regular Expression and Print
-
-```bash
-grep -E "[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}" *.md
-```
-
----
+## Tips and tricks
 
 ### Don't Copy-Paste Blindly
 
@@ -707,11 +696,185 @@ Although later I learnt that you can actually revert the `git revert` command it
 - Avoid running random scripts from the internet
 - Understand what commands do before executing them
 
----
-
 ### Don't hesitate to ask!
 
-Ask me, Ask Stack Overflow, Ask Github Discussion, Ask Chat GPT,...
+Ask me, Ask Stack Overflow, Ask Github Discussion, Ask AI,...
+
+---
+
+### Get Help AI
+
+Add this function to your `$PROFILE`
+
+<div style="max-height: 320px; overflow-y: auto;">
+
+````pwsh
+# https://github.com/canh25xp/dotfiles/blob/1bea8f57a9469293326b1e2909a15a6cc7fc78d0/.chezmoitemplates/pwsh/functions.ps1
+function Get-HelpAI {
+    param(
+        [Parameter(Mandatory=$true)]
+        [string]$Prompt
+    )
+
+    $systemPrompt = @"
+You are a command-line assistant.
+Your primary goals is to provide correct, minimal, copy-pasteable CLI commands.
+You should respond with a command that can be used to achieve the desired result.
+Command shoud be suitable for Linux by default. Unless user specified otherwise.
+
+Rules:
+- Output ONLY the command, do not include any additional text or explaination.
+- Do NOT include any quotes or backticks in the output.
+- When multiple solutions exist, show the best default only.
+"@.Trim()
+
+    $ollamaHostRaw = if ($env:OLLAMA_HOST) { $env:OLLAMA_HOST } else { "http://127.0.0.1:11434" }
+    $ollamaHostNormalized = $ollamaHostRaw.Trim()
+
+    if (-not ($ollamaHostNormalized -match '^[a-zA-Z][a-zA-Z0-9+\\.\\-]*://')) {
+        $ollamaHostNormalized = "http://$ollamaHostNormalized"
+    }
+
+    try {
+        $ollamaUriBuilder = [UriBuilder]$ollamaHostNormalized
+    } catch {
+        Write-Warning "Invalid OLLAMA_HOST value '$ollamaHostRaw'. Falling back to http://127.0.0.1:11434."
+        $ollamaUriBuilder = [UriBuilder]"http://127.0.0.1:11434"
+    }
+
+    if ($ollamaUriBuilder.Host -eq "0.0.0.0") {
+        $ollamaUriBuilder.Host = "127.0.0.1"
+    }
+
+    if ($ollamaUriBuilder.Port -eq -1) {
+        $ollamaUriBuilder.Port = 11434
+    }
+
+    $baseUri = $ollamaUriBuilder.Uri.AbsoluteUri.TrimEnd('/')
+    $requestUri = "$baseUri/api/chat"
+
+    $payload = @{
+        model = "mistral"
+        stream = $false
+        messages = @(
+            @{ role = "system"; content = $systemPrompt }
+            @{ role = "user"; content = $Prompt }
+        )
+    }
+
+    if (-not (Get-Command curl.exe -ErrorAction SilentlyContinue)) {
+        Write-Warning "curl.exe not found in PATH."
+        return $null
+    }
+
+    try {
+        $jsonPayload = $payload | ConvertTo-Json -Depth 6 -Compress
+    } catch {
+        Write-Warning "Failed to serialize payload to JSON: $($_.Exception.Message)"
+        return $null
+    }
+
+    $curlArgs = @(
+        "-s" # --silent
+        "-S" # --show-error
+        "-f" # --fail
+        "-X" # --request
+        "POST"
+        $requestUri
+        "-d" # --data
+        $jsonPayload
+    )
+
+    try {
+        $responseRaw = & curl.exe @curlArgs
+    } catch {
+        Write-Warning "Failed to invoke curl.exe for $requestUri : $($_.Exception.Message)"
+        return $null
+    }
+
+    if ([string]::IsNullOrWhiteSpace($responseRaw)) {
+        Write-Warning "No response from Ollama API for prompt: '$Prompt'."
+        return $null
+    }
+
+    try {
+        $response = $responseRaw | ConvertFrom-Json -Depth 6
+    } catch {
+        Write-Warning "Failed to parse Ollama response as JSON. Returning raw output."
+        return ($responseRaw | Out-String).Trim()
+    }
+
+    $output = $null
+
+    if ($response -and $response.message -and $response.message.content) {
+        $output = $response.message.content
+    } elseif ($response -and $response.messages) {
+        $output = ($response.messages | Select-Object -Last 1).content
+    }
+
+    if (-not $output) {
+        Write-Warning "No response from ollama for prompt: '$Prompt'."
+        return $null
+    }
+
+    # This regex captures everything inside the first ```...``` block.
+    $match = [regex]::Match(
+        $output,
+        '```[a-zA-Z0-9_-]*\s*([\s\S]*?)\s*```',
+        'Singleline'
+    )
+
+    if ($match.Success) {
+        return $match.Groups[1].Value.Trim()
+    }
+
+    Write-Debug "No code block found in response. Returning raw output."
+    return $output.Trim()
+}
+````
+
+</div>
+
+---
+
+### Get Help AI
+
+Make it into a keymap for quick access:
+
+<div style="max-height: 380px; overflow-y: auto;">
+
+```pwsh
+# https://github.com/canh25xp/dotfiles/blob/1bea8f57a9469293326b1e2909a15a6cc7fc78d0/.chezmoitemplates/pwsh/PSReadLineProfile.ps1
+Set-PSReadLineKeyHandler -Chord 'Ctrl+x,Ctrl+h' `
+    -BriefDescription "Ask AI" `
+    -LongDescription "Ask AI about what ever the question is currently typing on the cli and insert it back the current line" `
+    -ScriptBlock {
+    $line = $null
+    $cursor = $null
+    [Microsoft.PowerShell.PSConsoleReadLine]::GetBufferState([ref]$line, [ref]$cursor)
+
+    $prompt = $line.Trim()
+
+    if ([string]::IsNullOrWhiteSpace($prompt)) {
+        return
+    }
+
+    [Microsoft.PowerShell.PSConsoleReadLine]::DeleteLine()
+    [Microsoft.PowerShell.PSConsoleReadLine]::Insert("Asking Ollama: '$prompt'...")
+
+    $command = Get-HelpAI -Prompt $prompt
+
+    [Microsoft.PowerShell.PSConsoleReadLine]::DeleteLine()
+    if ($command) {
+        [Microsoft.PowerShell.PSConsoleReadLine]::Insert($command)
+    } else {
+        # If generation failed, restore the original prompt
+        [Microsoft.PowerShell.PSConsoleReadLine]::Insert($prompt)
+    }
+}
+```
+
+</div>
 
 ---
 
