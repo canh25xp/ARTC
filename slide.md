@@ -64,9 +64,8 @@ That is, you should be able to open help by using 1 of the following flag: `--he
 <!-- Tự động hóa -->
 <!-- Hiệu năng -->
 
-- Accessibility <!-- Sometimes CLI is all you have:
-  Remote SSH, Cloud access, Container connections...
-  Some applications only have CLI.
+- Accessibility <!-- Sometimes CLI is all you have: Remote SSH, Cloud access, Container connections...
+  Some applications only have CLI, mostly build tools like `gradle`, `cmake`, `npm`, ...
   Some applications are built on top of their CLI counterparts but only CLI give you full access and control (p4 vs p4v, git vs git-gui) -->
 - Reproducibility <!-- Whether reporting an issue or documenting a guide,
   A sequence of commands is just easier to reproduce than a list of screenshots. -->
@@ -377,7 +376,7 @@ It's time to move on to some commands that will actually boot your productivity.
 
 ### My everyday commands
 
-- [`ssh`](https://www.openssh.com/), [`tmux`](https://github.com/tmux/tmux), [`nvim`](https://github.com/neovim/neovim), [`git`](https://github.com/git/git)
+- [`ssh`](https://www.openssh.com/), [`tmux`](https://github.com/tmux/tmux), [`nvim`](https://github.com/neovim/neovim), [`git`](https://github.com/git/git), [`p4`]()
 - [`chezmoi`](https://github.com/twpayne/chezmoi), [`starship`](https://github.com/starship/starship), [`gh`](https://github.com/cli/cli), [`fzf`](https://github.com/junegunn/fzf), [`lazygit`](https://github.com/jesseduffield/lazygit), [`yazi`](https://github.com/sxyazi/yazi)
 - [`bat`](https://github.com/sharkdp/bat), [`eza`](https://github.com/eza-community/eza), [`zoxide`](https://github.com/ajeetdsouza/zoxide), [`rsync`](https://rsync.samba.org/), [`rip`](https://github.com/MilesCranmer/rip2), [`rg`](https://github.com/BurntSushi/ripgrep), [`fd`](https://github.com/sharkdp/fd), [`sd`](https://github.com/chmln/sd), [`btm`](https://github.com/ClementTsang/bottom), [`curlie`](https://github.com/rs/curlie), [`http`](https://github.com/httpie/cli), [`delta`](https://github.com/dandavison/delta), [`dust`](https://github.com/bootandy/dust), [`gdu`](https://github.com/dundee/gdu), [`duf`](https://github.com/muesli/duf), [`procs`](https://github.com/dalance/procs)
 - [`ffmpeg`](https://github.com/FFmpeg/FFmpeg), [`pandoc`](https://github.com/jgm/pandoc), [`jq`](https://github.com/jqlang/jq), [`yq`](https://github.com/kislyuk/yq), [`mlr`](https://github.com/johnkerl/miller)
