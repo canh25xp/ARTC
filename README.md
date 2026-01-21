@@ -28,6 +28,9 @@ npx marp slide.md --preview --watch
 ```bash
 npx marp --server .
 xdg-open http://localhost:8080/slide.md
+
+# Launch in background
+# nohup npx marp --server . &
 ```
 
 ## Troubleshoot
