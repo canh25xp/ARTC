@@ -272,6 +272,25 @@ p4 changes -m1
 
 ---
 
+### Structure of CLI
+
+```sh
+command -f value subcommand
+command subcommand -f value # Not the same as above
+```
+
+Sometimes the location of the flag can mean different things.
+
+```sh
+p4 -c SRV_DSS_SECSETTINGS_BENI_VANCANH_NG revert -c 32801339 ...
+```
+
+Here the first `-c` is [global options](https://help.perforce.com/helix-core/server-apps/cmdref/current/Content/CmdRef/global.options.html), it refers to the Client name.
+Meanwhile, the second `-c` is [subcommand options](https://help.perforce.com/helix-core/server-apps/cmdref/current/Content/CmdRef/p4_revert.html#:~:text=not%20be%20reverted.-,%2Dc%20change,-Reverts%20only%20those), it refers to the Change List (CL)
+Read more about perforce global options with `p4 --help`
+
+---
+
 ### Shell expansions
 
 <!-- The shell rewrites many arguments **before** launching your program. -->
