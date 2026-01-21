@@ -235,6 +235,29 @@ command -abc first second third # Same as above
 ### Structure of CLI
 
 ```sh
+command -fff first second third
+```
+
+Sometimes a switch can be used multiple times to produce different affect.
+
+```sh
+curl -v https://example.com/    # Verbose level 1
+curl -vv https://example.com/   # Verbose level 2
+curl -vvv https://example.com/  # Verbose level 3
+```
+
+```sh
+#         -w : ignore whitespace
+git blame -w -C path/to/file    # detect lines moved or copied from other files that were modified in the same commit
+git blame -w -CC path/to/file   # or any commit that created the file
+git blame -w -CCC path/to/file  # or any commit at all
+```
+
+---
+
+### Structure of CLI
+
+```sh
 command -f value first second third
 command -fvalue first second third
 ```
