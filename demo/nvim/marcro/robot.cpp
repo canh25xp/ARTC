@@ -7,9 +7,26 @@ class ROBOT {
   Step 1: remove 'else'
   vif                     select inside function
   :'<,'>s/else /          search and delete all 'else'
-  Step 2:
-  [f                      goto begin of the function
-  +                       goto first word nextline
+  Step 2: add `switch`
+  cif                     select inside function
+  switch (rob->dir) {}    litteral text insert
+  =af                     format arround function
+  +                       Move to the first word next line
+  Step 3: Record macro
+  qq                      Start record macro to key `q`
+  ciw                     Change inner word
+  case                    litteral text insert
+  ya'                     vopy arround ''
+  gi                      return ro previous insert
+  p                       paste
+  da(                     delete arround ()
+  $                       go to end of line
+  r:                      replace { with :
+  jD                      down 1 line and delete whole line
+  i                       enter insert
+  break;                  litteral text insert
+  +                       Move to the first word next line
+  q                       End macro
   */
   void move(ROBOT *rob) {
     if (rob->dir == 'N') {
