@@ -51,7 +51,7 @@ jobs:
         uses: charmbracelet/vhs-action@8bf764cf528ba8ddfb54122276924fc1467e0dcb
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          install-fonts: true
+          install-fonts: false
 
       - name: Detect changed tape files
         if: github.event_name != 'workflow_dispatch'
