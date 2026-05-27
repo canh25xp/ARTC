@@ -1,0 +1,85 @@
+name: Regenerate VHS GIFs
+
+on:
+  push:
+    paths:
+      - "**/*.tape"
+      - ".github/workflows/vhs.yml"
+  pull_request:
+    paths:
+      - "**/*.tape"
+      - ".github/workflows/vhs.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: vhs-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  vhs:
+    runs-on: ubuntu-latest
+    if: >-
+      github.actor != 'dependabot[bot]' &&
+      github.actor != 'github-actions[bot]' &&
+      (
+        github.event_name != 'pull_request' ||
+        github.event.pull_request.head.repo.full_name == github.repository
+      )
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Match local tape working directory
+        run: |
+          mkdir -p "$HOME/projects"
+          ln -sfn "$GITHUB_WORKSPACE" "$HOME/projects/ARTC"
+
+      - name: Install tape dependencies
+        run: sudo apt-get update && sudo apt-get install -y cowsay cmatrix ffmpeg
+
+      - name: Download ffmpeg demo media
+        run: bash scripts/prepare.sh
+
+      - name: Install VHS
+        uses: charmbracelet/vhs-action@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          install-fonts: true
+
+      - name: Detect changed tape files
+        if: github.event_name != 'workflow_dispatch'
+        id: changed
+        uses: tj-actions/changed-files@v45
+        with:
+          files: "**/*.tape"
+
+      - name: Render tapes
+        run: |
+          set -euo pipefail
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            scripts/maketape.sh --force
+            exit 0
+          fi
+          mapfile -t tapes < <(echo "${{ steps.changed.outputs.all_changed_files }}")
+          if [[ ${#tapes[@]} -eq 0 ]]; then
+            echo "No tape files changed."
+            exit 0
+          fi
+          for tape in "${tapes[@]}"; do
+            scripts/maketape.sh --force "$(basename "$tape" .tape)"
+          done
+
+      - name: Commit regenerated GIFs
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore: regenerate VHS GIFs"
+          commit_user_name: "github-actions[bot]"
+          commit_user_email: "41898282+github-actions[bot]@users.noreply.github.com"
+          file_pattern: "**/*.gif"
+          branch: ${{ github.head_ref || github.ref_name }}

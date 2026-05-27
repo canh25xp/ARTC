@@ -14,6 +14,21 @@ Theme and styling assets are under `dracula/`, while reusable images, tapes, and
 - `scripts/maketape.sh [--force] [name]`: Regenerate GIFs from `.tape` files using VHS; scope to a single demo with `name`.
 - `scripts/prepare.sh`: Download the sample media clip required by the `ffmpeg` demo.
 
+## VHS GIF automation (CI)
+
+The [Regenerate VHS GIFs](.github/workflows/vhs.yml) workflow runs when any `*.tape` file changes (or via
+`workflow_dispatch`). It installs [VHS](https://github.com/charmbracelet/vhs), renders changed tapes with
+`scripts/maketape.sh --force`, and commits updated `*.gif` files back to the triggering branch.
+
+Manual verification after changing tapes:
+
+1. Push a branch with a `.tape` edit and confirm the **Regenerate VHS GIFs** workflow succeeds.
+2. Confirm the workflow commits the matching `.gif` on the same branch (message: `chore: regenerate VHS GIFs`).
+3. After merge to `main`, confirm **Deploy slide to GitHub Pages** runs (triggered by `assets/**` changes).
+4. Optionally run **Regenerate VHS GIFs** manually to rebuild all tapes end-to-end.
+
+Fork PRs do not receive auto-commits; regenerate GIFs locally with `scripts/maketape.sh --force` instead.
+
 ## Coding Style & Naming Conventions
 
 Slides and documentation use Markdown with Marp front-matter; keep headings sentence case and avoid long bullet lists.
