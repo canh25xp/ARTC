@@ -3,6 +3,12 @@ name: Deploy slide to GitHub Pages
 on:
   push:
     branches: [main]
+    paths:
+      - "slide.md"
+      - "assets/**"
+      - "demo/**"
+      - "dracula/**"
+      - ".github/workflows/pages.yml"
   workflow_dispatch:
 
 permissions:
