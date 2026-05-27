@@ -47,7 +47,7 @@ jobs:
         run: bash scripts/prepare.sh
 
       - name: Install VHS
-        uses: charmbracelet/vhs-action@v1
+        uses: charmbracelet/vhs-action@v2.1.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           install-fonts: false
