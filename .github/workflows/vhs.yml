@@ -46,9 +46,8 @@ jobs:
       - name: Download ffmpeg demo media
         run: bash scripts/prepare.sh
 
-      # @v1 treats an empty path as "vhs.tape"; pin main until a fixed release exists.
       - name: Install VHS
-        uses: charmbracelet/vhs-action@8bf764cf528ba8ddfb54122276924fc1467e0dcb
+        uses: charmbracelet/vhs-action@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           install-fonts: false
