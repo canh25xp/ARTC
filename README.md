@@ -33,6 +33,17 @@ xdg-open http://localhost:8080/slide.md
 # nohup npx marp --server . &
 ```
 
+## GitHub Pages
+
+Pushes to `main` build `slide.md` with Marp and publish the deck to GitHub Pages.
+
+- Deck: https://canh25xp.github.io/ARTC/slide.html
+- Root (same deck): https://canh25xp.github.io/ARTC/
+
+Enable Pages once per repository: **Settings → Pages → Build and deployment → Source: GitHub Actions**.
+
+The workflow lives in [.github/workflows/pages.yml](.github/workflows/pages.yml).
+
 ## Troubleshoot
 
 WSL convert to pdf failed
